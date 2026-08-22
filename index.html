@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Blkaut</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="game">
+  <header class="hud">
+    <span class="hud-title">Blkaut</span>
+    <span class="hud-level" id="hud-level">Level 1</span>
+    <span class="hud-spacer"></span>
+    <button class="hud-button" id="undo" type="button">Undo</button>
+    <button class="hud-button" id="reset" type="button">Reset</button>
+    <span class="hud-stat"><span class="hud-stat-label">Left</span><b id="hud-left">0</b></span>
+    <span class="hud-stat"><span class="hud-stat-label">Moves</span><b id="hud-moves">0</b></span>
+  </header>
+
+  <div class="board" id="board">
+    <div class="frame"></div>
+    <div class="field" id="field"></div>
+    <div class="won" id="won" hidden>
+      <p class="won-title">Board clear</p>
+      <p class="won-detail"><span id="won-moves">0</span> moves &middot; best possible <span id="won-best">0</span></p>
+      <button class="hud-button" id="again" type="button">Play again</button>
+    </div>
+  </div>
+
+  <p class="hint">Drag a block along its row or column. Push it out through a door of its own colour.</p>
+</main>
+
+<script src="rules.js"></script>
+<script src="levels/level-01.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

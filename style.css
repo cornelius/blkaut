@@ -1,0 +1,156 @@
+:root {
+  --cell: 64px;
+  --frame: 20px;
+  --radius: 10px;
+
+  --bg: #12141a;
+  --frame-fill: #2b3140;
+  --frame-edge: #3a4256;
+  --field: #191d26;
+  --grid: rgba(255, 255, 255, 0.045);
+  --text: #e6e9f0;
+  --text-dim: #8d97ad;
+
+  --red: #e8564f;
+  --blue: #3d8bf2;
+  --green: #35b87c;
+  --yellow: #edad2b;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.game { display: flex; flex-direction: column; gap: 16px; padding: 24px; }
+
+/* HUD: every slot has a fixed box so nothing shifts as the numbers change. */
+.hud {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+}
+
+.hud-title { font-weight: 650; letter-spacing: 0.01em; }
+.hud-level { color: var(--text-dim); }
+.hud-spacer { flex: 1; }
+
+.hud-button {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--frame-edge);
+  border-radius: 8px;
+  background: var(--frame-fill);
+  color: var(--text);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+.hud-button:hover { background: #343b4c; }
+.hud-button:active { transform: translateY(1px); }
+.hud-button:disabled { opacity: 0.4; cursor: default; transform: none; }
+
+.hud-stat { display: flex; align-items: baseline; gap: 6px; }
+.hud-stat-label { color: var(--text-dim); font-size: 13px; }
+.hud-stat b {
+  min-width: 2ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
+.board {
+  position: relative;
+  width: calc(var(--cols) * var(--cell) + 2 * var(--frame));
+  height: calc(var(--rows) * var(--cell) + 2 * var(--frame));
+  touch-action: none;
+  user-select: none;
+}
+
+.frame {
+  position: absolute;
+  inset: 0;
+  border: var(--frame) solid var(--frame-fill);
+  border-radius: calc(var(--radius) + 6px);
+  box-shadow: inset 0 0 0 1px var(--frame-edge), 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+.field {
+  position: absolute;
+  inset: var(--frame);
+  overflow: visible;
+  background-color: var(--field);
+  background-image:
+    linear-gradient(to right, var(--grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+  background-size: var(--cell) var(--cell);
+}
+
+/* Doors sit in the frame band, flush against the playing field. */
+.door {
+  position: absolute;
+  background: var(--door-color);
+  border-radius: 3px;
+  box-shadow: 0 0 14px -2px var(--door-color);
+}
+
+.wall {
+  position: absolute;
+  width: var(--cell);
+  height: var(--cell);
+  background:
+    repeating-linear-gradient(45deg, #4d5670 0 7px, #394154 7px 14px);
+  box-shadow: inset 0 0 0 1px #5a6480;
+  border-radius: 4px;
+}
+
+.block {
+  position: absolute;
+  border-radius: var(--radius);
+  background: var(--block-color);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.22),
+    0 3px 8px rgba(0, 0, 0, 0.35);
+  cursor: grab;
+}
+.block::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: calc(var(--radius) - 4px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+.block.settling { transition: transform 130ms cubic-bezier(0.3, 0.9, 0.4, 1); }
+.block.dragging { cursor: grabbing; z-index: 5; filter: brightness(1.08); }
+.block.leaving {
+  transition: transform 220ms ease-in, opacity 220ms ease-in;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.won[hidden] { display: none; }
+
+.won {
+  position: absolute;
+  inset: var(--frame);
+  display: grid;
+  place-content: center;
+  gap: 12px;
+  justify-items: center;
+  background: rgba(18, 20, 26, 0.88);
+  backdrop-filter: blur(2px);
+}
+.won-title { margin: 0; font-size: 22px; font-weight: 650; }
+.won-detail { margin: 0; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+
+.hint { margin: 0; color: var(--text-dim); font-size: 13px; text-align: center; }

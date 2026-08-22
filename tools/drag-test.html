@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<base href="../">
+<title>pending</title>
+</head>
+<body>
+<!-- Drives the real page in an iframe with synthetic pointer events, so the
+     drag handling is tested against the markup that ships rather than a copy.
+     Run through tools/run-tests.sh, which supplies the file-access flag. -->
+<iframe id="stage" src="index.html" width="700" height="700" style="border:0"></iframe>
+<pre id="out">pending</pre>
+<script>
+const CELL = 64;
+const results = [];
+
+function report(text) {
+  document.title = text;
+  document.getElementById("out").textContent = text.split(" ;; ").join("\n");
+}
+
+window.addEventListener("load", async () => {
+  const frame = document.getElementById("stage");
+  const doc = frame.contentDocument;
+  if (!doc) return report("FAIL ;; iframe unreadable - rerun with --allow-file-access-from-files");
+  const win = frame.contentWindow;
+  const field = doc.getElementById("field");
+  const box = frame.getBoundingClientRect();
+
+  const posOf = (el) => {
+    const t = el.style.transform.match(/translate\(\s*([-\d.]+)px\s*,\s*([-\d.]+)px\s*\)/);
+    return t ? Math.round(+t[1] / CELL) + "," + Math.round(+t[2] / CELL) : "gone";
+  };
+  const blockAt = (x, y) =>
+    [...field.querySelectorAll(".block")].find((el) => posOf(el) === x + "," + y);
+  const counters = () =>
+    doc.getElementById("hud-left").textContent + "/" + doc.getElementById("hud-moves").textContent;
+
+  const send = (el, type, x, y) => el.dispatchEvent(
+    new win.PointerEvent(type, {
+      clientX: x, clientY: y, bubbles: true, pointerId: 1, isPrimary: true,
+    })
+  );
+  function drag(el, dxCells, dyCells) {
+    const rect = el.getBoundingClientRect();
+    const x0 = rect.left + rect.width / 2;
+    const y0 = rect.top + rect.height / 2;
+    send(el, "pointerdown", x0, y0);
+    for (let step = 1; step <= 8; step++) {
+      send(el, "pointermove", x0 + dxCells * CELL * step / 8, y0 + dyCells * CELL * step / 8);
+    }
+    send(el, "pointerup", x0 + dxCells * CELL, y0 + dyCells * CELL);
+  }
+  const expect = (name, got, want) =>
+    results.push((got === want ? "PASS " : "FAIL ") + name + " [" + got + " vs " + want + "]");
+
+  // the red door overhead belongs to another colour, so green must not budge
+  const green = blockAt(0, 0);
+  drag(green, 0, -2);
+  expect("green refused by red door", posOf(green) + " " + counters(), "0,0 8/0");
+
+  // a drag longer than the lane clamps at the block in the way
+  const yellow = blockAt(0, 1);
+  drag(yellow, 0, 3);
+  expect("yellow stops against red", posOf(yellow) + " " + counters(), "0,2 8/1");
+
+  // blue reaches its own door and leaves
+  drag(blockAt(2, 0), 4, 0);
+  expect("blue exits right", counters(), "7/2");
+
+  // undo puts it back and rewinds the counter with it
+  doc.getElementById("undo").click();
+  expect("undo restores the block", blockAt(2, 0) ? counters() : "block missing", "8/1");
+
+  // stopping short of the door parks the block instead of exiting it
+  const parked = blockAt(2, 0);
+  drag(parked, 1, 0);
+  expect("short drag parks the block", posOf(parked) + " " + counters(), "3,0 8/2");
+
+  // reset returns the board to its opening position
+  doc.getElementById("reset").click();
+  expect("reset restores the level", counters(), "8/0");
+
+  // finally, play the whole level the way a player would and see it end
+  const solution = await fetch("levels/level-01.solution.txt")
+    .then((r) => r.text())
+    .then((text) => text.split("\n")
+      .map((line) => line.match(/^\s*\d+\.\s+(\w+)\s+(\w+)\s+(\w+)\s*$/))
+      .filter(Boolean))
+    .catch(() => []);
+  if (!solution.length) {
+    results.push("FAIL solution file unreadable");
+  } else {
+    for (const [, id, dir, amount] of solution) {
+      const el = field.querySelector('[data-id="' + id + '"]');
+      if (!el) { results.push("FAIL playthrough lost block " + id); break; }
+      // an exit needs a shove past the wall; the clamp trims any excess
+      const cells = amount === "out" ? 9 : Number(amount);
+      const step = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[dir];
+      drag(el, step[0] * cells, step[1] * cells);
+    }
+    const overlay = doc.getElementById("won");
+    expect("playthrough clears the board", counters(), "0/" + solution.length);
+    expect("win overlay is on screen", win.getComputedStyle(overlay).display, "grid");
+  }
+
+  const failed = results.filter((r) => r.startsWith("FAIL")).length;
+  report((failed ? "FAIL " + failed + " of " + results.length : "PASS all " + results.length)
+    + " ;; " + results.join(" ;; "));
+});
+</script>
+</body>
+</html>
