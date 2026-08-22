@@ -39,7 +39,7 @@ door. Leaving is atomic: a block never rests half off the board.
 | `style.css` | Board, blocks, doors, and the fixed-width HUD slots. |
 | `rules.js` | The whole game model. Legality, sliding, and exits, with no DOM. |
 | `game.js` | Rendering, carrying, undo, and reset. Asks `rules.js` what is legal. |
-| `levels/level-NN.js` | One level each: board size, walls, doors, blocks, and its shortest solution length. |
+| `levels/level-NN.js` | One level each: board size, walls, doors, blocks, and its par. |
 | `levels/level-NN.solution.txt` | Solver output for that level, replayed by the tests. |
 | `tools/blkaut.py` | The level model for the tools: both solvers, careless playouts, measurements. |
 | `tools/verify-level.py` | Solves one level and describes it. |
@@ -105,6 +105,9 @@ a level is any good. `verify-level.py` prints the others:
 - **branching** — how many moves are available, averaged over the opening. Room
   to think in.
 - **openings** — blocks that can leave from their starting square.
+
+Keyboard: Escape returns a carried block to where it was picked up, and
+Cmd/Ctrl-Z undoes the last move.
 
 Levels are not meant to climb in difficulty. A set wants variety across all of
 these, which is what the generator selects for.

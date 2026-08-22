@@ -338,9 +338,6 @@
       event.preventDefault();
       cancelCarry();
       undo();
-    } else if (event.key === "r") {
-      cancelCarry();
-      start();
     } else if (event.key === "ArrowLeft" && !carry) {
       start(index - 1);
     } else if (event.key === "ArrowRight" && !carry) {
