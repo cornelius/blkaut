@@ -62,14 +62,9 @@ def main():
     ident = f"{int(existing[-1].stem.split('-')[1]) + 1:02d}" if existing else "01"
 
     level = Level(data)
-    solution, explored = (
-        level.solve_fast() if args.fast else level.solve_exact(cap=args.cap)
-    )
-    proven = not args.fast and isinstance(solution, list)
+    solution, proven, explored = level.solve_best(cap=args.cap, allow_exact=not args.fast)
     if not isinstance(solution, list):
-        print(f"exact search {solution} after {explored} states; falling back to fast")
-        solution, explored = level.solve_fast()
-        proven = False
+        sys.exit("no solution found; this candidate is not playable")
     if not isinstance(solution, list):
         sys.exit("no solution found; this candidate is not playable")
 

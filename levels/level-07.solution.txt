@@ -1,0 +1,14 @@
+level-07.js: 12 blocks, 13 states explored
+shortest solution: 12 moves
+   1. r0 out-left
+   2. r6 out-left
+   3. g2 left4 up3 out-left
+   4. g11 down1 out-left
+   5. g5 up1 left3 down1 left2 up1 out-left
+   6. b7 left1 up1 out-left
+   7. b1 up3 left4 up1 out-left
+   8. r3 left1 down5 out-left
+   9. b4 left1 up3 left1 up1 out-left
+  10. g8 left6 out-left
+  11. r9 left6 out-left
+  12. b10 left2 out-left

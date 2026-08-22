@@ -48,7 +48,8 @@ door. Leaving is atomic: a block never rests half off the board.
 | `tools/sync-levels.py` | Rewrites the three lists of levels from what is in `levels/`. |
 | `tools/replay-test.js` | Checks every level's data, replays its solution through `rules.js`, and checks how doors refuse a block. |
 | `tools/drag-test.html` | Drives the real page with synthetic pointer events, up to a full playthrough. |
-| `tools/run-tests.sh` | Runs both test passes. |
+| `tools/tools-test.py` | Smoke test for the level tools, which the game's own tests never touch. |
+| `tools/run-tests.sh` | Runs every test pass. |
 
 ## Working on it
 
@@ -64,6 +65,9 @@ The generator packs random boards, throws away the ones that will not play, and
 keeps a set whose measurements sit as far apart as possible. Adopting one writes
 the level and its solution and registers it everywhere; `sync-levels.py` alone
 rebuilds those lists if you write a level by hand.
+
+After editing a level, `verify-level.py <level> --update` re-solves it and writes
+the new par and solution file back, so the two cannot drift apart.
 
 ### Two solvers, for two questions
 

@@ -5,6 +5,7 @@ set -e
 cd "$(dirname "$0")/.."
 
 node tools/replay-test.js
+tools/tools-test.py
 
 CHROME=${CHROME:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}
 if [ ! -x "$CHROME" ]; then

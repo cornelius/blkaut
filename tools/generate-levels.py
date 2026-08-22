@@ -83,9 +83,9 @@ def pack(rng):
             for _ in range(12):
                 side = rng.choice(["top", "right", "bottom", "left"])
                 start = rng.randrange(size - width + 1)
-                span = set(range(start, start + width))
+                wants = set(range(start, start + width))
                 clash = any(
-                    d["side"] == side and span & set(range(d["from"], d["to"] + 1))
+                    d["side"] == side and wants & set(range(d["from"], d["to"] + 1))
                     for d in doors
                 )
                 if clash:

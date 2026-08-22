@@ -13,7 +13,7 @@
   const CLICK_SLOP = 0.35; // cells; a press shorter than this is a click, not a drag
 
   /* levels */
-  const LEVELS = [LEVEL_01, LEVEL_02, LEVEL_03, LEVEL_04];
+  const LEVELS = [LEVEL_01, LEVEL_02, LEVEL_03, LEVEL_04, LEVEL_05, LEVEL_06, LEVEL_07];
 /* /levels */
   let index = 0;
   let level = LEVELS[0];

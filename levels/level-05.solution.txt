@@ -1,0 +1,17 @@
+level-05.js: 15 blocks, 16 states explored
+shortest solution: 15 moves
+   1. r0 left4 out-left
+   2. r3 down1 left3 out-left
+   3. r6 down1 left5 out-left
+   4. b10 left3 out-up
+   5. r9 left1 down1 left2 down1 left3 out-left
+   6. g2 up2 right3 up2 right2 out-up
+   7. g5 up3 right2 up2 right2 out-up
+   8. g8 right1 up1 right3 out-up
+   9. g11 right5 out-up
+  10. b1 up1 left1 up4 left1 out-up
+  11. b4 left3 up4 left1 out-up
+  12. b7 down1 left3 up4 left1 out-up
+  13. r12 up1 left5 out-left
+  14. b13 up3 left3 out-up
+  15. g14 up2 left1 up3 out-up

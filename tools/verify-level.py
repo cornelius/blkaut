@@ -13,6 +13,7 @@ space, and the move count is only one of the things that make a level good.
 """
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -26,13 +27,18 @@ def main():
     parser.add_argument("--exact", action="store_true",
                         help="prove the shortest solution instead of finding one")
     parser.add_argument("--quiet", action="store_true", help="skip the measurements")
+    parser.add_argument("--update", action="store_true",
+                        help="write par back into the level and rewrite its solution file")
     args = parser.parse_args()
 
-    level = Level(load_level(args.level))
-    solution, explored = (
-        level.solve_exact() if args.exact else level.solve_fast()
-    )
-    kind = "shortest" if args.exact else "par"
+    data = load_level(args.level)
+    level = Level(data)
+    if args.update:
+        solution, proven, explored = level.solve_best()
+        kind = "shortest" if proven else "par"
+    else:
+        solution, explored = level.solve_exact() if args.exact else level.solve_fast()
+        kind = "shortest" if args.exact else "par"
     print(f"{args.level.name}: {len(level.blocks)} blocks, {explored} states explored")
 
     if solution == "capped":
@@ -45,6 +51,17 @@ def main():
     print(f"{kind} solution: {len(solution)} moves")
     for n, label in enumerate(solution, 1):
         print(f"  {n:2}. {label}")
+
+    if args.update:
+        text = args.level.read_text()
+        was = data["par"]
+        text = re.sub(r'"par":\s*\d+', f'"par": {len(solution)}', text, count=1)
+        args.level.write_text(text)
+        body = [f"{args.level.name}: {len(level.blocks)} blocks, {explored} states explored",
+                f"{kind} solution: {len(solution)} moves"]
+        body += [f"  {n:2}. {label}" for n, label in enumerate(solution, 1)]
+        args.level.with_suffix(".solution.txt").write_text("\n".join(body) + "\n")
+        print(f"par {was} -> {len(solution)}, solution file rewritten")
 
     if not args.quiet:
         stats = level.measure()

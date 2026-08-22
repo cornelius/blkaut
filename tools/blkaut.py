@@ -263,6 +263,24 @@ class Level:
                     heapq.heappush(heap, (self.left(nxt), next(tie), nxt))
         return None, explored
 
+    def solve_best(self, cap=400_000, allow_exact=True):
+        """The best solution worth paying for, and whether it is provably best.
+
+        A solution as long as the block count cannot be beaten, because every
+        block needs a gesture of its own, so that case is proven without any
+        further search."""
+        solution, explored = self.solve_fast()
+        if not isinstance(solution, list):
+            return solution, False, explored
+        if len(solution) == len(self.blocks):
+            return solution, True, explored
+        if allow_exact:
+            exact, more = self.solve_exact(cap=cap)
+            explored += more
+            if isinstance(exact, list):
+                return exact, True, explored
+        return solution, False, explored
+
     def playout(self, rng, exit_bias=0.8):
         """Play carelessly: take an exit when one is going, otherwise shove a
         block somewhere. Returns True if the board came out clear."""
