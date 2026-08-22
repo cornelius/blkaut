@@ -6,7 +6,8 @@ free squares, and push it out through a door of its own colour. Clear every
 block to finish the level.
 
 Open `index.html` directly in a browser. There is no build step and no
-dependency.
+dependency. The arrows in the header move between levels, and finishing one
+offers the next.
 
 ## Carrying a block
 
@@ -38,10 +39,10 @@ door. Leaving is atomic: a block never rests half off the board.
 | `style.css` | Board, blocks, doors, and the fixed-width HUD slots. |
 | `rules.js` | The whole game model. Legality, sliding, and exits, with no DOM. |
 | `game.js` | Rendering, carrying, undo, and reset. Asks `rules.js` what is legal. |
-| `levels/level-01.js` | The level: board size, walls, doors, blocks, and its shortest solution length. |
-| `levels/level-01.solution.txt` | Solver output for that level, replayed by the tests. |
+| `levels/level-NN.js` | One level each: board size, walls, doors, blocks, and its shortest solution length. |
+| `levels/level-NN.solution.txt` | Solver output for that level, replayed by the tests. |
 | `tools/verify-level.py` | A* search that proves a level solvable and prints the shortest solution, one line per gesture. |
-| `tools/replay-test.js` | Replays the solution through `rules.js` and checks how doors refuse a block. |
+| `tools/replay-test.js` | Checks every level's data, replays its solution through `rules.js`, and checks how doors refuse a block. |
 | `tools/drag-test.html` | Drives the real page with synthetic pointer events, up to a full playthrough. |
 | `tools/run-tests.sh` | Runs both test passes. |
 
@@ -59,6 +60,16 @@ A solution line reads `b2 up3 right1 out-right`: one gesture, its legs in order,
 and the wall it leaves by. Both test passes replay those legs, the second one as
 actual pointer movement.
 
+To add a level, write `levels/level-NN.js`, add it to the `LEVELS` list in
+`game.js`, the script tags in `index.html`, and the list in
+`tools/replay-test.js`, then generate its solution as above.
+
+The search is exhaustive, so it proves the figure it reports is the true minimum,
+and its cost climbs steeply with free space rather than with board size: room to
+manoeuvre is what multiplies the positions each block can reach. A level it
+cannot finish says `GAVE UP`, which is not the same answer as `UNSOLVABLE` and
+means the level wants tightening, not that it is broken.
+
 ## Constraints
 
 - **Legality lives in `rules.js` and nowhere else.** `game.js` may position
@@ -71,3 +82,7 @@ actual pointer movement.
 - **Blocks are rendered as rectangles.** The model handles any set of cells,
   but a block is drawn as one bounding box, so a level with an L-shaped piece
   would draw wrongly.
+- **The page is a fixed width, wider than any board.** Boards are centred in it
+  and the header spans it, so neither a bigger board nor a longer level name
+  shifts the header when you switch level. A board wider than that width would
+  break the arrangement.

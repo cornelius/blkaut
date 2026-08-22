@@ -184,6 +184,31 @@ window.addEventListener("load", async () => {
     expect("win overlay is on screen", win.getComputedStyle(overlay).display, "grid");
   }
 
+  /* the win screen leads on, and the header must not move between levels */
+  const chrome = () => ["undo", "reset", "hud-moves"].map((id) => {
+    const r = doc.getElementById(id).getBoundingClientRect();
+    return Math.round(r.left) + ":" + Math.round(r.width);
+  }).join("|");
+  const name = () => doc.getElementById("hud-level").textContent;
+
+  const headerLines = () => Math.round(doc.querySelector(".hud").getBoundingClientRect().height);
+  const atFirst = chrome();
+  const linesFirst = headerLines();
+  doc.getElementById("onward").click();
+  expect("win screen leads to the next level", name() + " " + counters(), "Crosstown 13/0");
+  const atSecond = chrome();
+  doc.getElementById("next").click();
+  expect("third level loads", name() + " " + counters(), "Gridlock 10/0");
+  const atThird = chrome();
+  expect("no next level past the last", String(doc.getElementById("next").disabled), "true");
+  doc.getElementById("prev").click();
+  doc.getElementById("prev").click();
+  expect("back at the first level", name(), "First Light");
+  expect("no previous level before the first", String(doc.getElementById("prev").disabled), "true");
+  expect("header holds still on level 2", atSecond, atFirst);
+  expect("header holds still on level 3", atThird, atFirst);
+  expect("header stays one line", String(linesFirst), "34");
+
   const failed = results.filter((r) => r.startsWith("FAIL")).length;
   report((failed ? "FAIL " + failed + " of " + results.length : "PASS all " + results.length)
     + " ;; " + results.join(" ;; "));

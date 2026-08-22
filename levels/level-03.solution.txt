@@ -1,0 +1,19 @@
+level-03.js: 10 blocks, 185744 states explored
+shortest solution: 17 moves
+   1. g3 down1
+   2. y2 down1 right1
+   3. g3 up2 out-left
+   4. y1 down2
+   5. g2 down1 left2 out-left
+   6. r2 left2
+   7. b2 up1 left1
+   8. b3 up1
+   9. y1 down1 right4 out-down
+  10. r2 down1 left1 down2 right2 out-down
+  11. y2 down1 right2 out-down
+  12. r1 down4 right2 out-down
+  13. b3 down1 left4
+  14. g1 down4 left3 up2 left2 out-left
+  15. b1 right2 out-right
+  16. b2 right1 up1 out-right
+  17. b3 right4 up4 out-right

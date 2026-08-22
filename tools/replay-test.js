@@ -1,14 +1,15 @@
 "use strict";
 
-/* Replays the solver's solution through the engine the browser runs, so the
-   Python search and the JavaScript rules have to agree, and checks the three
-   ways a door refuses a block. Run: node tools/replay-test.js */
+/* Checks every level: that its data is well formed, that the solver's solution
+   replays through the engine the browser runs, and that doors refuse a block
+   for each of the reasons they are supposed to. Run: node tools/replay-test.js */
 
 const fs = require("fs");
 const path = require("path");
 const Rules = require("../rules.js");
 
 const root = path.join(__dirname, "..");
+const LEVELS = ["level-01", "level-02", "level-03"];
 const failures = [];
 
 function check(condition, description) {
@@ -16,16 +17,16 @@ function check(condition, description) {
   failures.push(description);
 }
 
-function loadLevel(file) {
-  const source = fs.readFileSync(path.join(root, file), "utf8");
-  const name = source.match(/const\s+(\w+)/)[1];
-  return eval(source + ";" + name);
+function loadLevel(name) {
+  const source = fs.readFileSync(path.join(root, "levels", name + ".js"), "utf8");
+  const binding = source.match(/const\s+(\w+)/)[1];
+  return eval(source + ";" + binding);
 }
 
 // "  3. b2 up3 right1 out-right" -> one gesture, its legs, and how it ends
-function loadSolution(file) {
+function loadSolution(name) {
   return fs
-    .readFileSync(path.join(root, file), "utf8")
+    .readFileSync(path.join(root, "levels", name + ".solution.txt"), "utf8")
     .split("\n")
     .map((line) => line.match(/^\s*\d+\.\s+(\S+)\s+(.+?)\s*$/))
     .filter(Boolean)
@@ -45,56 +46,94 @@ function loadSolution(file) {
     });
 }
 
-/* the shipped level, driven by the shipped rules ------------------------- */
+/* the level data itself is hand-written, so check it holds together -------- */
 
-const level = loadLevel("levels/level-01.js");
-const solution = loadSolution("levels/level-01.solution.txt");
-check(solution.length > 0, "solution file has no moves in it");
-check(
-  solution.length === level.minMoves,
-  `level.minMoves says ${level.minMoves} but the solution is ${solution.length} moves`
-);
+function inspect(name, level) {
+  const seen = new Map();
+  const walls = new Set(level.walls.map(([x, y]) => x + "," + y));
+  for (const block of level.blocks) {
+    for (const [ox, oy] of block.cells) {
+      const x = block.x + ox;
+      const y = block.y + oy;
+      const key = x + "," + y;
+      check(
+        x >= 0 && x < level.width && y >= 0 && y < level.height,
+        `${name}: ${block.id} starts off the board at ${key}`
+      );
+      check(!walls.has(key), `${name}: ${block.id} starts inside a wall at ${key}`);
+      check(!seen.has(key), `${name}: ${block.id} overlaps ${seen.get(key)} at ${key}`);
+      seen.set(key, block.id);
+    }
+  }
+  // every block needs a door somewhere that its leading edge actually fits
+  const state = Rules.create(level);
+  for (const block of state.blocks) {
+    const fits = level.doors.some((door) => {
+      if (door.color !== block.color) return false;
+      const across = Rules.extent(block, door.side === "top" || door.side === "bottom" ? "x" : "y");
+      return door.to - door.from + 1 >= across;
+    });
+    check(fits, `${name}: ${block.id} has no door it can fit through`);
+  }
+}
 
-const state = Rules.create(level);
+/* each level's solution, driven by the shipped rules ---------------------- */
+
+let replayed = 0;
 let corners = 0;
-solution.forEach((move, index) => {
-  const step = index + 1;
-  const block = state.blocks.find((b) => b.id === move.id);
-  check(block && block.alive, `move ${step}: ${move.id} is not on the board`);
-  if (!block || !block.alive) return;
-  if (move.legs.length > 1) corners += 1;
-  for (const leg of move.legs) {
-    const ahead = Rules.reach(state, block)[leg.dir];
-    check(
-      leg.steps >= 1 && leg.steps <= ahead.max,
-      `move ${step}: ${move.id} cannot go ${leg.dir} ${leg.steps} (limit ${ahead.max})`
-    );
-    Rules.apply(state, block, leg.dir, leg.steps);
-  }
-  if (move.leaving) {
-    check(
-      Rules.reach(state, block)[move.leaving].exit,
-      `move ${step}: ${move.id} cannot leave ${move.leaving}`
-    );
-    block.alive = false;
-  }
-});
-check(Rules.solved(state), "replaying the solution did not clear the board");
-check(corners > 0, "no move in the solution turns a corner, so nothing tests cornering");
 
-/* the level is not solvable by simply pushing everything at the wall ----- */
+for (const name of LEVELS) {
+  const level = loadLevel(name);
+  const solution = loadSolution(name);
+  inspect(name, level);
+  check(solution.length > 0, `${name}: solution file has no moves in it`);
+  check(
+    solution.length === level.minMoves,
+    `${name}: minMoves says ${level.minMoves} but the solution is ${solution.length} moves`
+  );
 
-const lazy = Rules.create(level);
-const freebies = lazy.blocks.filter((b) => Rules.reach(lazy, b).up.exit
-  || Rules.reach(lazy, b).down.exit
-  || Rules.reach(lazy, b).left.exit
-  || Rules.reach(lazy, b).right.exit);
-check(
-  freebies.length < lazy.blocks.length,
-  "every block can leave from its starting square, so the level is not a puzzle"
-);
+  const state = Rules.create(level);
+  solution.forEach((move, index) => {
+    const step = index + 1;
+    const block = state.blocks.find((b) => b.id === move.id);
+    check(block && block.alive, `${name} move ${step}: ${move.id} is not on the board`);
+    if (!block || !block.alive) return;
+    if (move.legs.length > 1) corners += 1;
+    for (const leg of move.legs) {
+      const ahead = Rules.reach(state, block)[leg.dir];
+      check(
+        leg.steps >= 1 && leg.steps <= ahead.max,
+        `${name} move ${step}: ${move.id} cannot go ${leg.dir} ${leg.steps} (limit ${ahead.max})`
+      );
+      Rules.apply(state, block, leg.dir, leg.steps);
+    }
+    if (move.leaving) {
+      check(
+        Rules.reach(state, block)[move.leaving].exit,
+        `${name} move ${step}: ${move.id} cannot leave ${move.leaving}`
+      );
+      block.alive = false;
+    }
+  });
+  check(Rules.solved(state), `${name}: replaying the solution did not clear the board`);
+  replayed += solution.length;
 
-/* a door refuses the wrong colour, the wrong width, and the corner ------- */
+  // a level where every block simply walks out is not a puzzle
+  const idle = Rules.create(level);
+  const loose = idle.blocks.filter((b) => {
+    const ahead = Rules.reach(idle, b);
+    return ahead.up.exit || ahead.down.exit || ahead.left.exit || ahead.right.exit;
+  });
+  check(loose.length < 2, `${name}: ${loose.length} blocks can leave from their opening square`);
+  check(
+    solution.length > level.blocks.length,
+    `${name}: solves in one gesture per block, so nothing has to be shuffled`
+  );
+}
+
+check(corners > 0, "no move in any solution turns a corner, so nothing tests cornering");
+
+/* a door refuses the wrong colour, the wrong width, and the corner -------- */
 
 const probe = Rules.create({
   width: 3,
@@ -112,22 +151,10 @@ const probe = Rules.create({
 });
 const byId = (id) => probe.blocks.find((b) => b.id === id);
 
-check(
-  !Rules.reach(probe, byId("wrong-colour")).up.exit,
-  "a blue block left through a red door"
-);
-check(
-  !Rules.reach(probe, byId("too-wide")).up.exit,
-  "a two-wide block squeezed through a one-wide door"
-);
-check(
-  Rules.reach(probe, byId("corner")).left.exit,
-  "a green block was refused by its own full-height door"
-);
-check(
-  !Rules.reach(probe, byId("corner")).down.exit,
-  "a block escaped through a wall with no door in it"
-);
+check(!Rules.reach(probe, byId("wrong-colour")).up.exit, "a blue block left through a red door");
+check(!Rules.reach(probe, byId("too-wide")).up.exit, "a two-wide block squeezed through a one-wide door");
+check(Rules.reach(probe, byId("corner")).left.exit, "a green block was refused by its own full-height door");
+check(!Rules.reach(probe, byId("corner")).down.exit, "a block escaped through a wall with no door in it");
 
 /* ------------------------------------------------------------------------ */
 
@@ -136,6 +163,6 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  `pass: ${solution.length} gestures replayed (${corners} turning corners), ` +
-    "board cleared, 4 door rules held"
+  `pass: ${LEVELS.length} levels checked, ${replayed} gestures replayed ` +
+    `(${corners} turning corners), 4 door rules held`
 );

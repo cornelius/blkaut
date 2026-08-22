@@ -10,7 +10,9 @@
 <main class="game">
   <header class="hud">
     <span class="hud-title">Blkaut</span>
+    <button class="hud-step" id="prev" type="button" aria-label="Previous level">&lsaquo;</button>
     <span class="hud-level" id="hud-level">Level 1</span>
+    <button class="hud-step" id="next" type="button" aria-label="Next level">&rsaquo;</button>
     <span class="hud-spacer"></span>
     <button class="hud-button" id="undo" type="button">Undo</button>
     <button class="hud-button" id="reset" type="button">Reset</button>
@@ -24,7 +26,10 @@
     <div class="won" id="won" hidden>
       <p class="won-title">Board clear</p>
       <p class="won-detail"><span id="won-moves">0</span> moves &middot; best possible <span id="won-best">0</span></p>
-      <button class="hud-button" id="again" type="button">Play again</button>
+      <span class="won-buttons">
+        <button class="hud-button" id="again" type="button">Play again</button>
+        <button class="hud-button" id="onward" type="button">Next level</button>
+      </span>
     </div>
   </div>
 
@@ -33,6 +38,8 @@
 
 <script src="rules.js"></script>
 <script src="levels/level-01.js"></script>
+<script src="levels/level-02.js"></script>
+<script src="levels/level-03.js"></script>
 <script src="game.js"></script>
 </body>
 </html>

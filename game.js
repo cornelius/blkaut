@@ -12,7 +12,9 @@
   const EPS = 1e-9;
   const CLICK_SLOP = 0.35; // cells; a press shorter than this is a click, not a drag
 
-  const level = LEVEL_01;
+  const LEVELS = [LEVEL_01, LEVEL_02, LEVEL_03];
+  let index = 0;
+  let level = LEVELS[0];
   const board = document.getElementById("board");
   const field = document.getElementById("field");
   const hud = {
@@ -25,6 +27,9 @@
     won: document.getElementById("won"),
     wonMoves: document.getElementById("won-moves"),
     wonBest: document.getElementById("won-best"),
+    prev: document.getElementById("prev"),
+    next: document.getElementById("next"),
+    onward: document.getElementById("onward"),
   };
 
   let state = null;
@@ -99,6 +104,8 @@
     hud.left.textContent = state.blocks.filter((b) => b.alive).length;
     hud.moves.textContent = moves;
     hud.undo.disabled = history.length === 0;
+    hud.prev.disabled = index === 0;
+    hud.next.disabled = index === LEVELS.length - 1;
   }
 
   /* carrying a block ----------------------------------------------------- */
@@ -332,6 +339,10 @@
     } else if (event.key === "r") {
       cancelCarry();
       start();
+    } else if (event.key === "ArrowLeft" && !carry) {
+      start(index - 1);
+    } else if (event.key === "ArrowRight" && !carry) {
+      start(index + 1);
     }
   });
 
@@ -350,6 +361,7 @@
     if (Rules.solved(state)) {
       hud.wonMoves.textContent = moves;
       hud.wonBest.textContent = level.minMoves;
+      hud.onward.hidden = index === LEVELS.length - 1;
       hud.won.hidden = false;
     }
   }
@@ -376,7 +388,11 @@
     refreshHud();
   }
 
-  function start() {
+  function start(which) {
+    if (typeof which === "number") {
+      index = Math.min(Math.max(which, 0), LEVELS.length - 1);
+      level = LEVELS[index];
+    }
     carry = null;
     state = Rules.create(level);
     history = [];
@@ -387,8 +403,11 @@
   }
 
   hud.undo.addEventListener("click", undo);
-  hud.reset.addEventListener("click", start);
-  hud.again.addEventListener("click", start);
+  hud.reset.addEventListener("click", () => start());
+  hud.again.addEventListener("click", () => start());
+  hud.onward.addEventListener("click", () => start(index + 1));
+  hud.prev.addEventListener("click", () => start(index - 1));
+  hud.next.addEventListener("click", () => start(index + 1));
 
-  start();
+  start(0);
 })();

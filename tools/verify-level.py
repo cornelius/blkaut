@@ -166,7 +166,7 @@ class Level:
                 continue
             explored += 1
             if explored > cap:
-                return None, explored
+                return "capped", explored
             if all(pos is None for pos in state):
                 path = []
                 while seen[state] is not None:
@@ -187,8 +187,11 @@ def main():
     level = Level(load_level(path))
     solution, explored = level.solve()
     print(f"{path.name}: {len(level.blocks)} blocks, {explored} states explored")
+    if solution == "capped":
+        print("GAVE UP: hit the search cap, so this says nothing either way")
+        return 2
     if solution is None:
-        print("UNSOLVABLE")
+        print("UNSOLVABLE: the search exhausted every reachable position")
         return 1
     print(f"shortest solution: {len(solution)} moves")
     for n, label in enumerate(solution, 1):

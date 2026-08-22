@@ -35,9 +35,10 @@ body {
   flex-direction: column;
   gap: 16px;
   padding: 24px;
-  /* the board sets the width; the hint wraps inside it rather than stretching
-     the column and pushing the board off centre */
-  width: calc(var(--cols) * var(--cell) + 2 * var(--frame) + 48px);
+  align-items: center;
+  /* a fixed page width, so neither a wider board nor a longer level name moves
+     the header when you switch level */
+  width: 608px;
 }
 
 /* HUD: every slot has a fixed box so nothing shifts as the numbers change. */
@@ -46,11 +47,35 @@ body {
   align-items: center;
   gap: 10px;
   height: 34px;
+  width: 100%;
 }
 
+/* nothing in the header may wrap or be squeezed: a header that reflows is a
+   header that moves between levels */
+.hud > * { flex-shrink: 0; white-space: nowrap; }
 .hud-title { font-weight: 650; letter-spacing: 0.01em; }
-.hud-level { color: var(--text-dim); }
-.hud-spacer { flex: 1; }
+/* fixed slot: level names differ in length and must not move the arrow */
+.hud-level {
+  color: var(--text-dim);
+  min-width: 108px;
+  text-align: center;
+}
+
+.hud-step {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--frame-edge);
+  border-radius: 7px;
+  background: var(--frame-fill);
+  color: var(--text);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+.hud-step:hover { background: #343b4c; }
+.hud-step:disabled { opacity: 0.35; cursor: default; }
+.hud-spacer { flex: 1 1 0; min-width: 0; }
 
 .hud-button {
   height: 30px;
@@ -167,4 +192,6 @@ body {
 .won-detail { margin: 0; color: var(--text-dim); font-variant-numeric: tabular-nums; }
 
 .hint { margin: 0; color: var(--text-dim); font-size: 13px; text-align: center; }
+
+.won-buttons { display: flex; gap: 10px; }
 
