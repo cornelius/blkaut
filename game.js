@@ -179,18 +179,21 @@
     place(carry.block, carry.fx - carry.block.x, carry.fy - carry.block.y);
   }
 
-  // Far enough through the door to be committed to it.
+  // Touching the doorway is enough: nudge a block past the wall by a pixel and
+  // it is gone. Nobody parks a block flush inside their own door, so there is
+  // nothing here for a bigger threshold to protect.
   function throughDoor() {
     const c = carry;
     if (!c.leaving) return null;
-    const checks = [
-      ["x", "left", c.limits.x.min - c.fx, c.limits.x.span],
-      ["x", "right", c.fx - c.limits.x.max, c.limits.x.span],
-      ["y", "up", c.limits.y.min - c.fy, c.limits.y.span],
-      ["y", "down", c.fy - c.limits.y.max, c.limits.y.span],
+    const bite = 1 / cell;
+    const past = [
+      ["left", c.limits.x.min - c.fx],
+      ["right", c.fx - c.limits.x.max],
+      ["up", c.limits.y.min - c.fy],
+      ["down", c.fy - c.limits.y.max],
     ];
-    for (const [, dir, past, span] of checks) {
-      if (past >= span / 2) return dir;
+    for (const [dir, distance] of past) {
+      if (distance >= bite) return dir;
     }
     return null;
   }
@@ -239,9 +242,16 @@
     block.alive = false;
     c.el.classList.remove("carrying");
     c.el.classList.add("leaving");
+    const from = c.el.style.transform;
     if (axis === "x") c.fx = edge; else c.fy = edge;
     render();
-    c.el.addEventListener("transitionend", () => c.el.remove(), { once: true });
+    // animated rather than transitioned: the class and the transform land in
+    // one style pass, which a CSS transition would sit out entirely
+    const flight = c.el.animate(
+      [{ transform: from, opacity: 1 }, { transform: c.el.style.transform, opacity: 0 }],
+      { duration: 220, easing: "ease-in", fill: "forwards" }
+    );
+    flight.finished.then(() => c.el.remove(), () => {});
     history.push(c.before);
     carry = null;
     commit();
@@ -356,6 +366,7 @@
       block.y = saved.y;
       block.alive = saved.alive;
       if (revived) {
+        el.getAnimations().forEach((a) => a.cancel());
         el.classList.remove("leaving");
         if (!el.isConnected) field.appendChild(el);
       }

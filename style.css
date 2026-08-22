@@ -149,11 +149,7 @@ body {
     0 12px 24px rgba(0, 0, 0, 0.5);
 }
 
-.block.leaving {
-  transition: transform 220ms ease-in, opacity 220ms ease-in;
-  opacity: 0;
-  pointer-events: none;
-}
+.block.leaving { pointer-events: none; }
 
 .won[hidden] { display: none; }
 

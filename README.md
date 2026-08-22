@@ -19,7 +19,8 @@ While carried, the block trails the pointer square by square. It can only turn
 where it is lined up with the grid, so it edges to the next grid line before
 changing axis, which is what lets one gesture run along a row, down a column and
 out through a door without stopping. One gesture is one move, however many
-corners it turns.
+corners it turns. A door takes the block as soon as it crosses the wall by a
+pixel, so leaving never needs a deliberate shove.
 
 ## How a move is judged
 

@@ -33,7 +33,7 @@ window.addEventListener("load", async () => {
     return t ? Math.round(+t[1] / CELL) + "," + Math.round(+t[2] / CELL) : "gone";
   };
   const blockAt = (x, y) =>
-    [...field.querySelectorAll(".block")].find((el) => posOf(el) === x + "," + y);
+    [...field.querySelectorAll(".block:not(.leaving)")].find((el) => posOf(el) === x + "," + y);
   const centre = (el) => {
     const r = el.getBoundingClientRect();
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
@@ -128,6 +128,23 @@ window.addEventListener("load", async () => {
   gesture(parked, [[1, 0]]);
   expect("short pull parks the block", posOf(parked) + " " + counters(), "3,0 8/1");
 
+  /* the door takes the block the moment it crosses the wall */
+  doc.getElementById("reset").click();
+  const nudge = blockAt(2, 0);
+  const at = centre(nudge);
+  press(nudge, at.x, at.y);
+  walk(at, [[2, 0]]);
+  expect("flush inside its door stays put", posOf(nudge) + " " + counters(), "4,0 8/0");
+  hover(at.x + 2 * CELL + 1, at.y);
+  expect("one pixel through the door exits", counters(), "7/1");
+  const flight = nudge.getAnimations();
+  expect(
+    "the exit is animated, not snapped",
+    String(flight.length && flight[0].effect.getTiming().duration),
+    "220"
+  );
+  release(at.x + 2 * CELL + 1, at.y);
+
   /* finally, play the level the way a player would and watch it end */
   doc.getElementById("reset").click();
   const solution = await fetch("levels/level-01.solution.txt")
@@ -141,7 +158,7 @@ window.addEventListener("load", async () => {
   } else {
     const STEP = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
     for (const [, id, rest] of solution) {
-      const el = field.querySelector('[data-id="' + id + '"]');
+      const el = field.querySelector('.block:not(.leaving)[data-id="' + id + '"]');
       if (!el) { results.push("FAIL playthrough lost block " + id); break; }
       const across = Math.round((el.offsetWidth + 6) / CELL);
       const down = Math.round((el.offsetHeight + 6) / CELL);
