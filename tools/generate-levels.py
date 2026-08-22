@@ -5,12 +5,18 @@
 # ///
 """Shake out candidate levels and keep a varied handful.
 
-Screening uses the fast solver, so a candidate costs about a second rather than
-the minutes an optimality proof costs. Selection maximises spread across the
-measurements rather than ranking by any one of them: a good set of levels
-differs from one another, and need not climb.
+Screening uses the fast solver, so a candidate costs a fraction of a second
+rather than the minutes an optimality proof costs. Selection maximises spread
+across the measurements rather than ranking by any one of them: a good set of
+levels differs from one another, and need not climb.
 
     generate-levels.py --count 8 --tries 400 --preview sheet.html
+    generate-levels.py --min-shuffles 2 --max-careless 0.5   # ask for hard ones
+
+Screening reports `shuffles` from the greedy solution, which is an upper bound:
+a level shown with several may prove to have none once the exact search runs.
+Read it as how much a hurried player is made to double back, and `--min-shuffles`
+as a bias rather than a guarantee.
 """
 
 import argparse
@@ -189,10 +195,15 @@ def main():
     parser.add_argument("--out", type=Path, default=Path("candidates.json"))
     parser.add_argument("--preview", type=Path)
     parser.add_argument("--max-openings", type=int, default=2)
+    parser.add_argument("--min-shuffles", type=int, default=0,
+                        help="least blocks that must be moved twice (screening estimate)")
+    parser.add_argument("--max-careless", type=float, default=1.0,
+                        help="most often careless play may clear it, 0 to 1")
     args = parser.parse_args()
 
     rng = random.Random(args.seed)
     kept = []
+    dropped = {"unplayable": 0, "openings": 0, "shuffles": 0, "careless": 0}
     for n in range(args.tries):
         data = pack(rng)
         if data is None:
@@ -204,15 +215,24 @@ def main():
             if any(level.exits(i, p[0], p[1], d, taken) for d in DIRS)
         )
         if openings > args.max_openings:
+            dropped["openings"] += 1
             continue
         stats = level.measure()
         if stats is None:
+            dropped["unplayable"] += 1
+            continue
+        if stats["shuffles"] < args.min_shuffles:
+            dropped["shuffles"] += 1
+            continue
+        if stats["careless"] > args.max_careless:
+            dropped["careless"] += 1
             continue
         kept.append({"level": data, "stats": stats})
         if len(kept) % 10 == 0:
-            print(f"  {len(kept)} playable of {n + 1} tried", flush=True)
+            print(f"  {len(kept)} kept of {n + 1} tried", flush=True)
 
-    print(f"{len(kept)} playable of {args.tries} tried")
+    print(f"{len(kept)} kept of {args.tries} tried; dropped "
+          + ", ".join(f"{count} on {why}" for why, count in dropped.items() if count))
     chosen = spread(kept, args.count)
     args.out.write_text(json.dumps(chosen, indent=1))
     if args.preview:

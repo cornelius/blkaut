@@ -56,6 +56,20 @@ with tempfile.TemporaryDirectory() as tmp:
             solution, _, _ = level.solve_best(allow_exact=False)
             check(isinstance(solution, list), f"candidate {n} does not solve")
 
+# the difficulty filter has to actually bite
+with tempfile.TemporaryDirectory() as tmp:
+    out = Path(tmp) / "hard.json"
+    run = subprocess.run(
+        [str(ROOT / "tools/generate-levels.py"), "--count", "2", "--tries", "40",
+         "--seed", "21", "--min-shuffles", "2", "--out", str(out)],
+        capture_output=True, text=True,
+    )
+    check(run.returncode == 0, f"filtered run failed: {run.stderr.strip()[-300:]}")
+    if run.returncode == 0 and out.exists():
+        for n, card in enumerate(json.loads(out.read_text()), 1):
+            check(card["stats"]["shuffles"] >= 2,
+                  f"--min-shuffles 2 let through a candidate with {card['stats']['shuffles']}")
+
 # the shipped levels must agree with what is recorded for them
 for path in sorted(ROOT.glob("levels/level-*.js")):
     data = load_level(path)

@@ -58,7 +58,7 @@ Run the tests with `tools/run-tests.sh`. The drag tests need Chrome; set
 
 ### Making levels
 
-    tools/generate-levels.py --count 10 --tries 600 --preview sheet.html
+    generate-levels.py --count 10 --tries 600 --preview sheet.html
     tools/adopt-level.py candidates.json --pick 1 --name Logjam
 
 The generator packs random boards, throws away the ones that will not play, and
@@ -97,7 +97,11 @@ a level is any good. `verify-level.py` prints the others:
   ordering: with blocks free to round corners, anything with a clear path walks
   straight out, so an open board plays itself however many blocks it holds.
 - **shuffles** — moves beyond one per block, so how many blocks have to be moved
-  twice.
+  twice. Fewer one-gesture-per-block solutions makes a harder level, and
+  `--min-shuffles` biases the generator toward them. Screening reports this from
+  the greedy solution, so it is an upper bound: a candidate showing several may
+  prove to have none. Read it as how much a hurried player is made to double
+  back, and treat the filter as a bias rather than a guarantee.
 - **branching** — how many moves are available, averaged over the opening. Room
   to think in.
 - **openings** — blocks that can leave from their starting square.
