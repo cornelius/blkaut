@@ -84,10 +84,14 @@ var Rules = (function () {
   // that takes it off the board. Exit is atomic: a position with only some
   // cells beyond the wall is never a resting place.
   function slide(state, block, dir, taken) {
+    return slideFrom(state, block, block.x, block.y, dir, taken);
+  }
+
+  function slideFrom(state, block, fromX, fromY, dir, taken) {
     const { width, height } = state.level;
     const [dx, dy] = DIRS[dir];
-    let x = block.x;
-    let y = block.y;
+    let x = fromX;
+    let y = fromY;
     let distance = 0;
     let max = 0;
     while (stepOk(state, block, x, y, dx, dy, taken)) {
@@ -104,6 +108,34 @@ var Rules = (function () {
       if (out === 0) max = distance;
     }
     return { max, exit: false };
+  }
+
+  // Where a block may travel along each axis from one grid-aligned square, and
+  // how far past the wall it would have to go to be all the way out. A drag
+  // reads this once per square and follows the pointer inside it.
+  function limitsAt(state, block, gx, gy, taken) {
+    const spanX = extent(block, "x");
+    const spanY = extent(block, "y");
+    const left = slideFrom(state, block, gx, gy, "left", taken);
+    const right = slideFrom(state, block, gx, gy, "right", taken);
+    const up = slideFrom(state, block, gx, gy, "up", taken);
+    const down = slideFrom(state, block, gx, gy, "down", taken);
+    return {
+      x: {
+        min: gx - left.max,
+        max: gx + right.max,
+        outMin: left.exit ? gx - left.max - spanX : null,
+        outMax: right.exit ? gx + right.max + spanX : null,
+        span: spanX,
+      },
+      y: {
+        min: gy - up.max,
+        max: gy + down.max,
+        outMin: up.exit ? gy - up.max - spanY : null,
+        outMax: down.exit ? gy + down.max + spanY : null,
+        span: spanY,
+      },
+    };
   }
 
   function reach(state, block) {
@@ -126,7 +158,10 @@ var Rules = (function () {
     return state.blocks.every((b) => !b.alive);
   }
 
-  return { DIRS, AXIS_OF, create, extent, occupancy, stepOk, slide, reach, apply, solved };
+  return {
+    DIRS, AXIS_OF, create, extent, occupancy, stepOk,
+    slide, slideFrom, limitsAt, reach, apply, solved,
+  };
 })();
 
 if (typeof module !== "undefined") module.exports = Rules;

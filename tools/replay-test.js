@@ -22,13 +22,27 @@ function loadLevel(file) {
   return eval(source + ";" + name);
 }
 
+// "  3. b2 up3 right1 out-right" -> one gesture, its legs, and how it ends
 function loadSolution(file) {
   return fs
     .readFileSync(path.join(root, file), "utf8")
     .split("\n")
-    .map((line) => line.match(/^\s*\d+\.\s+(\w+)\s+(\w+)\s+(\w+)\s*$/))
+    .map((line) => line.match(/^\s*\d+\.\s+(\S+)\s+(.+?)\s*$/))
     .filter(Boolean)
-    .map(([, id, dir, amount]) => ({ id, dir, amount }));
+    .map(([, id, rest]) => {
+      const legs = [];
+      let leaving = null;
+      for (const token of rest.split(/\s+/)) {
+        const out = token.match(/^out-(\w+)$/);
+        if (out) {
+          leaving = out[1];
+          continue;
+        }
+        const leg = token.match(/^([a-z]+)(\d+)$/);
+        if (leg) legs.push({ dir: leg[1], steps: Number(leg[2]) });
+      }
+      return { id, legs, leaving };
+    });
 }
 
 /* the shipped level, driven by the shipped rules ------------------------- */
@@ -42,25 +56,31 @@ check(
 );
 
 const state = Rules.create(level);
+let corners = 0;
 solution.forEach((move, index) => {
   const step = index + 1;
   const block = state.blocks.find((b) => b.id === move.id);
   check(block && block.alive, `move ${step}: ${move.id} is not on the board`);
   if (!block || !block.alive) return;
-  const ahead = Rules.reach(state, block)[move.dir];
-  if (move.amount === "out") {
-    check(ahead.exit, `move ${step}: ${move.id} cannot leave ${move.dir}`);
-    block.alive = false;
-  } else {
-    const steps = Number(move.amount);
+  if (move.legs.length > 1) corners += 1;
+  for (const leg of move.legs) {
+    const ahead = Rules.reach(state, block)[leg.dir];
     check(
-      steps >= 1 && steps <= ahead.max,
-      `move ${step}: ${move.id} cannot go ${move.dir} ${steps} (limit ${ahead.max})`
+      leg.steps >= 1 && leg.steps <= ahead.max,
+      `move ${step}: ${move.id} cannot go ${leg.dir} ${leg.steps} (limit ${ahead.max})`
     );
-    Rules.apply(state, block, move.dir, steps);
+    Rules.apply(state, block, leg.dir, leg.steps);
+  }
+  if (move.leaving) {
+    check(
+      Rules.reach(state, block)[move.leaving].exit,
+      `move ${step}: ${move.id} cannot leave ${move.leaving}`
+    );
+    block.alive = false;
   }
 });
 check(Rules.solved(state), "replaying the solution did not clear the board");
+check(corners > 0, "no move in the solution turns a corner, so nothing tests cornering");
 
 /* the level is not solvable by simply pushing everything at the wall ----- */
 
@@ -115,4 +135,7 @@ if (failures.length) {
   for (const failure of failures) console.error("FAIL  " + failure);
   process.exit(1);
 }
-console.log(`pass: ${solution.length} solution moves replayed, board cleared, 4 door rules held`);
+console.log(
+  `pass: ${solution.length} gestures replayed (${corners} turning corners), ` +
+    "board cleared, 4 door rules held"
+);

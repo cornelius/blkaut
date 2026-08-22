@@ -5,16 +5,17 @@
 # ///
 """Prove a level is solvable and report the shortest solution.
 
-Implements the same rules as game.js: rigid blocks slide along a row or column
-as far as the path is clear, and leave the board through a same-coloured door
-whose span covers every cell crossing the wall. Exit is atomic, so a position
-with only some cells off the board is never a resting state.
+A move is one gesture: the player picks a block up, walks it through the free
+squares turning as often as they like, and either puts it down or pushes it out
+through a door of its own colour. So a move is any position the block can reach
+along a clear path, and the printed legs are that path.
 """
 
 import heapq
 import json
 import re
 import sys
+from collections import deque
 from itertools import count
 from pathlib import Path
 
@@ -29,6 +30,17 @@ def load_level(path):
     return json.loads(match.group(1))
 
 
+def legs(path):
+    """A list of unit directions, compressed into runs."""
+    out = []
+    for name in path:
+        if out and out[-1][0] == name:
+            out[-1][1] += 1
+        else:
+            out.append([name, 1])
+    return out
+
+
 class Level:
     def __init__(self, data):
         self.width = data["width"]
@@ -38,7 +50,6 @@ class Level:
         self.cells = [tuple(tuple(c) for c in b["cells"]) for b in self.blocks]
         self.colors = [b["color"] for b in self.blocks]
         self.start = tuple((b["x"], b["y"]) for b in self.blocks)
-        # door spans keyed by (side, color) -> set of positions along that wall
         self.doors = {}
         for d in data["doors"]:
             span = self.doors.setdefault((d["side"], d["color"]), set())
@@ -57,7 +68,6 @@ class Level:
         return taken
 
     def step_ok(self, index, x, y, dx, dy, taken):
-        """One cell of movement for block `index` placed at (x, y)."""
         color = self.colors[index]
         for ox, oy in self.cells[index]:
             cx, cy = x + ox + dx, y + oy + dy
@@ -70,8 +80,6 @@ class Level:
                 if other is not None and other != index:
                     return False
                 continue
-            # leaving the board: only straight through the wall we move toward,
-            # never diagonally past a corner, and only via a matching door
             if dy < 0 and cy < 0 and inside_x:
                 if not self.door_allows("top", color, cx):
                     return False
@@ -88,66 +96,69 @@ class Level:
                 return False
         return True
 
+    def inside(self, index, x, y):
+        return all(
+            0 <= x + ox < self.width and 0 <= y + oy < self.height
+            for ox, oy in self.cells[index]
+        )
+
+    def exits(self, index, x, y, name, taken):
+        """Whether the block can walk right off the board from here."""
+        dx, dy = DIRS[name]
+        while self.step_ok(index, x, y, dx, dy, taken):
+            x, y = x + dx, y + dy
+            if not any(
+                0 <= x + ox < self.width and 0 <= y + oy < self.height
+                for ox, oy in self.cells[index]
+            ):
+                return True
+            if self.inside(index, x, y):
+                return False  # back on the board: this was never an exit
+        return False
+
     def moves(self, state):
-        """Every resting state reachable in one drag, as (label, next_state)."""
+        """Every state one gesture away, with the path that gesture traces."""
         taken = self.occupied(state)
         for i, pos in enumerate(state):
             if pos is None:
                 continue
-            for name, (dx, dy) in DIRS.items():
-                x, y = pos
-                distance = 0
-                while self.step_ok(i, x, y, dx, dy, taken):
-                    x, y = x + dx, y + dy
-                    distance += 1
-                    outside = [
-                        not (0 <= x + ox < self.width and 0 <= y + oy < self.height)
-                        for ox, oy in self.cells[i]
-                    ]
-                    nxt = list(state)
-                    if all(outside):
+            paths = {pos: []}
+            queue = deque([pos])
+            while queue:
+                here = queue.popleft()
+                x, y = here
+                for name, (dx, dy) in DIRS.items():
+                    if self.exits(i, x, y, name, taken):
+                        nxt = list(state)
                         nxt[i] = None
-                        yield (f"{self.blocks[i]['id']} {name} out", tuple(nxt))
-                        break
-                    if any(outside):
-                        continue  # mid-exit, not a place the block may rest
-                    nxt[i] = (x, y)
-                    yield (f"{self.blocks[i]['id']} {name} {distance}", tuple(nxt))
+                        label = self.describe(i, paths[here], name)
+                        yield (label, tuple(nxt))
+                    step = (x + dx, y + dy)
+                    if step in paths or not self.inside(i, *step):
+                        continue
+                    if not self.step_ok(i, x, y, dx, dy, taken):
+                        continue
+                    paths[step] = paths[here] + [name]
+                    queue.append(step)
+            for spot, path in paths.items():
+                if not path:
+                    continue
+                nxt = list(state)
+                nxt[i] = spot
+                yield (self.describe(i, path, None), tuple(nxt))
 
-    def exit_sides(self, index):
-        """Sides this block could ever leave by, given only its own shape."""
-        sides = []
-        color = self.colors[index]
-        for side in ("top", "bottom", "left", "right"):
-            span = self.doors.get((side, color))
-            if not span:
-                continue
-            axis = 0 if side in ("top", "bottom") else 1
-            width = max(c[axis] for c in self.cells[index]) + 1
-            if any(all(s + k in span for k in range(width)) for s in span):
-                sides.append((side, axis))
-        return sides
+    def describe(self, index, path, leaving):
+        parts = [f"{name}{n}" for name, n in legs(path)]
+        if leaving:
+            parts.append(f"out-{leaving}")
+        return self.blocks[index]["id"] + " " + " ".join(parts)
 
-    def lower_bound(self, index, pos):
-        """Fewest drags this block alone could need, ignoring every other block."""
-        for side, axis in self.exit_sides(index):
-            span = self.doors[(side, self.colors[index])]
-            profile = {pos[axis] + c[axis] for c in self.cells[index]}
-            if profile <= span:
-                return 1
-        return 2
-
-    def heuristic(self, state):
-        return sum(
-            self.lower_bound(i, pos) for i, pos in enumerate(state) if pos is not None
-        )
-
-    def solve(self, cap=3_000_000):
+    def solve(self, cap=2_000_000):
         tie = count()
         start = self.start
         seen = {start: None}
         best = {start: 0}
-        heap = [(self.heuristic(start), next(tie), 0, start)]
+        heap = [(sum(p is not None for p in start), next(tie), 0, start)]
         explored = 0
         while heap:
             _, _, cost, state = heapq.heappop(heap)
@@ -166,7 +177,8 @@ class Level:
                 if cost + 1 < best.get(nxt, 1 << 30):
                     best[nxt] = cost + 1
                     seen[nxt] = (label, state)
-                    heapq.heappush(heap, (cost + 1 + self.heuristic(nxt), next(tie), cost + 1, nxt))
+                    remaining = sum(p is not None for p in nxt)
+                    heapq.heappush(heap, (cost + 1 + remaining, next(tie), cost + 1, nxt))
         return None, explored
 
 

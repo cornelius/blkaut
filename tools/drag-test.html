@@ -7,13 +7,13 @@
 </head>
 <body>
 <!-- Drives the real page in an iframe with synthetic pointer events, so the
-     drag handling is tested against the markup that ships rather than a copy.
+     input handling is tested against the markup that ships rather than a copy.
      Run through tools/run-tests.sh, which supplies the file-access flag. -->
 <iframe id="stage" src="index.html" width="700" height="700" style="border:0"></iframe>
 <pre id="out">pending</pre>
 <script>
-const CELL = 64;
 const results = [];
+let CELL = 72;
 
 function report(text) {
   document.title = text;
@@ -26,7 +26,7 @@ window.addEventListener("load", async () => {
   if (!doc) return report("FAIL ;; iframe unreadable - rerun with --allow-file-access-from-files");
   const win = frame.contentWindow;
   const field = doc.getElementById("field");
-  const box = frame.getBoundingClientRect();
+  CELL = parseFloat(win.getComputedStyle(doc.documentElement).getPropertyValue("--cell"));
 
   const posOf = (el) => {
     const t = el.style.transform.match(/translate\(\s*([-\d.]+)px\s*,\s*([-\d.]+)px\s*\)/);
@@ -34,71 +34,117 @@ window.addEventListener("load", async () => {
   };
   const blockAt = (x, y) =>
     [...field.querySelectorAll(".block")].find((el) => posOf(el) === x + "," + y);
+  const centre = (el) => {
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  };
   const counters = () =>
     doc.getElementById("hud-left").textContent + "/" + doc.getElementById("hud-moves").textContent;
-
-  const send = (el, type, x, y) => el.dispatchEvent(
-    new win.PointerEvent(type, {
-      clientX: x, clientY: y, bubbles: true, pointerId: 1, isPrimary: true,
-    })
-  );
-  function drag(el, dxCells, dyCells) {
-    const rect = el.getBoundingClientRect();
-    const x0 = rect.left + rect.width / 2;
-    const y0 = rect.top + rect.height / 2;
-    send(el, "pointerdown", x0, y0);
-    for (let step = 1; step <= 8; step++) {
-      send(el, "pointermove", x0 + dxCells * CELL * step / 8, y0 + dyCells * CELL * step / 8);
-    }
-    send(el, "pointerup", x0 + dxCells * CELL, y0 + dyCells * CELL);
-  }
   const expect = (name, got, want) =>
     results.push((got === want ? "PASS " : "FAIL ") + name + " [" + got + " vs " + want + "]");
 
-  // the red door overhead belongs to another colour, so green must not budge
+  const send = (el, type, x, y, buttons) => el.dispatchEvent(
+    new win.PointerEvent(type, {
+      clientX: x, clientY: y, buttons: buttons || 0,
+      bubbles: true, pointerId: 1, isPrimary: true,
+    })
+  );
+  const press = (el, x, y) => send(el, "pointerdown", x, y, 1);
+  const hover = (x, y) => send(field, "pointermove", x, y, 0);
+  const release = (x, y) => send(field, "pointerup", x, y, 0);
+
+  // Walk the pointer through a list of [dx, dy] legs in cells, a couple of
+  // samples per cell, the way a hand moves.
+  function walk(from, legs) {
+    let { x, y } = from;
+    for (const [dx, dy] of legs) {
+      const samples = Math.max(1, Math.round((Math.abs(dx) + Math.abs(dy)) * 2));
+      for (let i = 1; i <= samples; i++) {
+        hover(x + (dx * CELL * i) / samples, y + (dy * CELL * i) / samples);
+      }
+      x += dx * CELL;
+      y += dy * CELL;
+    }
+    return { x, y };
+  }
+  function gesture(el, legs) {
+    const from = centre(el);
+    press(el, from.x, from.y);
+    const end = walk(from, legs);
+    release(end.x, end.y);
+  }
+
+  /* a door of the wrong colour is not a way out */
   const green = blockAt(0, 0);
-  drag(green, 0, -2);
+  gesture(green, [[0, -2]]);
   expect("green refused by red door", posOf(green) + " " + counters(), "0,0 8/0");
 
-  // a drag longer than the lane clamps at the block in the way
+  /* a pull longer than the lane stops at the block in the way */
   const yellow = blockAt(0, 1);
-  drag(yellow, 0, 3);
+  gesture(yellow, [[0, 3]]);
   expect("yellow stops against red", posOf(yellow) + " " + counters(), "0,2 8/1");
 
-  // blue reaches its own door and leaves
-  drag(blockAt(2, 0), 4, 0);
-  expect("blue exits right", counters(), "7/2");
+  /* down one, then left two, without letting go: one move, not two */
+  const red = blockAt(4, 1);
+  gesture(red, [[0, 1], [-2, 0]]);
+  expect("red turns a corner in one gesture", posOf(red) + " " + counters(), "2,2 8/2");
 
-  // undo puts it back and rewinds the counter with it
-  doc.getElementById("undo").click();
-  expect("undo restores the block", blockAt(2, 0) ? counters() : "block missing", "8/1");
+  /* click to pick up, move with no button held, click to put down */
+  const sticky = blockAt(3, 5);
+  const grab = centre(sticky);
+  press(sticky, grab.x, grab.y);
+  release(grab.x, grab.y);
+  const carried = walk(grab, [[-2, 0]]);
+  expect("block follows an unpressed pointer", posOf(sticky), "1,5");
+  press(field, carried.x, carried.y);
+  release(carried.x, carried.y);
+  expect("click puts the block down", posOf(sticky) + " " + counters(), "1,5 8/3");
 
-  // stopping short of the door parks the block instead of exiting it
-  const parked = blockAt(2, 0);
-  drag(parked, 1, 0);
-  expect("short drag parks the block", posOf(parked) + " " + counters(), "3,0 8/2");
-
-  // reset returns the board to its opening position
+  /* a block leaves through its own door, and undo brings it back */
   doc.getElementById("reset").click();
-  expect("reset restores the level", counters(), "8/0");
+  gesture(blockAt(2, 0), [[4, 0]]);
+  expect("blue exits right", counters(), "7/1");
+  doc.getElementById("undo").click();
+  expect("undo restores the block", blockAt(2, 0) ? counters() : "block missing", "8/0");
 
-  // finally, play the whole level the way a player would and see it end
+  /* stopping short of the door parks the block instead */
+  const parked = blockAt(2, 0);
+  gesture(parked, [[1, 0]]);
+  expect("short pull parks the block", posOf(parked) + " " + counters(), "3,0 8/1");
+
+  /* finally, play the level the way a player would and watch it end */
+  doc.getElementById("reset").click();
   const solution = await fetch("levels/level-01.solution.txt")
     .then((r) => r.text())
     .then((text) => text.split("\n")
-      .map((line) => line.match(/^\s*\d+\.\s+(\w+)\s+(\w+)\s+(\w+)\s*$/))
+      .map((line) => line.match(/^\s*\d+\.\s+(\S+)\s+(.+?)\s*$/))
       .filter(Boolean))
     .catch(() => []);
   if (!solution.length) {
     results.push("FAIL solution file unreadable");
   } else {
-    for (const [, id, dir, amount] of solution) {
+    const STEP = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+    for (const [, id, rest] of solution) {
       const el = field.querySelector('[data-id="' + id + '"]');
       if (!el) { results.push("FAIL playthrough lost block " + id); break; }
-      // an exit needs a shove past the wall; the clamp trims any excess
-      const cells = amount === "out" ? 9 : Number(amount);
-      const step = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[dir];
-      drag(el, step[0] * cells, step[1] * cells);
+      const across = Math.round((el.offsetWidth + 6) / CELL);
+      const down = Math.round((el.offsetHeight + 6) / CELL);
+      const legs = [];
+      for (const token of rest.split(/\s+/)) {
+        const out = token.match(/^out-(\w+)$/);
+        if (out) {
+          const [dx, dy] = STEP[out[1]];
+          // push far enough past the wall to be committed to the door
+          legs.push([dx * (across + 1), dy * (down + 1)]);
+          continue;
+        }
+        const leg = token.match(/^([a-z]+)(\d+)$/);
+        if (leg) {
+          const [dx, dy] = STEP[leg[1]];
+          legs.push([dx * Number(leg[2]), dy * Number(leg[2])]);
+        }
+      }
+      gesture(el, legs);
     }
     const overlay = doc.getElementById("won");
     expect("playthrough clears the board", counters(), "0/" + solution.length);
