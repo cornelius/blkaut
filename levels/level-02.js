@@ -2,7 +2,7 @@ const LEVEL_02 =
 {
   "id": "level-02",
   "name": "Crosstown",
-  "minMoves": 15,
+  "par": 15,
   "width": 7,
   "height": 7,
   "walls": [[2, 2], [4, 4]],

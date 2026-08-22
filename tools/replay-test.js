@@ -9,7 +9,9 @@ const path = require("path");
 const Rules = require("../rules.js");
 
 const root = path.join(__dirname, "..");
-const LEVELS = ["level-01", "level-02", "level-03"];
+/* levels */
+const LEVELS = ["level-01", "level-02", "level-03", "level-04"];
+/* /levels */
 const failures = [];
 
 function check(condition, description) {
@@ -88,8 +90,8 @@ for (const name of LEVELS) {
   inspect(name, level);
   check(solution.length > 0, `${name}: solution file has no moves in it`);
   check(
-    solution.length === level.minMoves,
-    `${name}: minMoves says ${level.minMoves} but the solution is ${solution.length} moves`
+    solution.length === level.par,
+    `${name}: par says ${level.par} but the solution is ${solution.length} moves`
   );
 
   const state = Rules.create(level);

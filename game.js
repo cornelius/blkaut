@@ -12,7 +12,9 @@
   const EPS = 1e-9;
   const CLICK_SLOP = 0.35; // cells; a press shorter than this is a click, not a drag
 
-  const LEVELS = [LEVEL_01, LEVEL_02, LEVEL_03];
+  /* levels */
+  const LEVELS = [LEVEL_01, LEVEL_02, LEVEL_03, LEVEL_04];
+/* /levels */
   let index = 0;
   let level = LEVELS[0];
   const board = document.getElementById("board");
@@ -360,7 +362,7 @@
     refreshHud();
     if (Rules.solved(state)) {
       hud.wonMoves.textContent = moves;
-      hud.wonBest.textContent = level.minMoves;
+      hud.wonBest.textContent = level.par;
       hud.onward.hidden = index === LEVELS.length - 1;
       hud.won.hidden = false;
     }

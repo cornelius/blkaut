@@ -41,7 +41,11 @@ door. Leaving is atomic: a block never rests half off the board.
 | `game.js` | Rendering, carrying, undo, and reset. Asks `rules.js` what is legal. |
 | `levels/level-NN.js` | One level each: board size, walls, doors, blocks, and its shortest solution length. |
 | `levels/level-NN.solution.txt` | Solver output for that level, replayed by the tests. |
-| `tools/verify-level.py` | A* search that proves a level solvable and prints the shortest solution, one line per gesture. |
+| `tools/blkaut.py` | The level model for the tools: both solvers, careless playouts, measurements. |
+| `tools/verify-level.py` | Solves one level and describes it. |
+| `tools/generate-levels.py` | Shakes out candidate levels, measures them, keeps a varied set, draws a preview sheet. |
+| `tools/adopt-level.py` | Turns a candidate into a real level and registers it. |
+| `tools/sync-levels.py` | Rewrites the three lists of levels from what is in `levels/`. |
 | `tools/replay-test.js` | Checks every level's data, replays its solution through `rules.js`, and checks how doors refuse a block. |
 | `tools/drag-test.html` | Drives the real page with synthetic pointer events, up to a full playthrough. |
 | `tools/run-tests.sh` | Runs both test passes. |
@@ -51,24 +55,51 @@ door. Leaving is atomic: a block never rests half off the board.
 Run the tests with `tools/run-tests.sh`. The drag tests need Chrome; set
 `CHROME` if it is not in the usual macOS location.
 
-After changing a level, re-run `tools/verify-level.py levels/<level>.js`, write
-its output over the level's `.solution.txt`, and update `minMoves` in the level
-to match. The tests fail if those two disagree, which is what keeps the "best
-possible" figure on the win screen honest.
+### Making levels
 
-A solution line reads `b2 up3 right1 out-right`: one gesture, its legs in order,
-and the wall it leaves by. Both test passes replay those legs, the second one as
-actual pointer movement.
+    tools/generate-levels.py --count 10 --tries 600 --preview sheet.html
+    tools/adopt-level.py candidates.json --pick 1 --name Logjam
 
-To add a level, write `levels/level-NN.js`, add it to the `LEVELS` list in
-`game.js`, the script tags in `index.html`, and the list in
-`tools/replay-test.js`, then generate its solution as above.
+The generator packs random boards, throws away the ones that will not play, and
+keeps a set whose measurements sit as far apart as possible. Adopting one writes
+the level and its solution and registers it everywhere; `sync-levels.py` alone
+rebuilds those lists if you write a level by hand.
 
-The search is exhaustive, so it proves the figure it reports is the true minimum,
-and its cost climbs steeply with free space rather than with board size: room to
-manoeuvre is what multiplies the positions each block can reach. A level it
-cannot finish says `GAVE UP`, which is not the same answer as `UNSOLVABLE` and
-means the level wants tightening, not that it is broken.
+### Two solvers, for two questions
+
+`solve_fast` answers "does this work, and roughly how long is it". It is greedy
+and it searches a reduced set of moves: only the squares a block comes to rest
+on, having run out of room. That misses solutions that need a block parked in
+open space, which is why it is for screening, where a wrong answer costs one
+candidate out of hundreds.
+
+`solve_exact` proves the shortest solution and is the default for a level being
+kept. Its cost is set by how much room the blocks have, not by board size or
+block count: a crowded seven-square board proves in seconds, while an open one
+of the same size can outrun any patience. Tighten a level that will not finish.
+`GAVE UP` means the search hit its cap and is not the same answer as
+`UNSOLVABLE`.
+
+### Reading a level's measurements
+
+Move count is one number among several and on its own says little about whether
+a level is any good. `verify-level.py` prints the others:
+
+- **careless** — how often random play, biased toward taking any exit going,
+  clears the board. This is the closest thing to a difficulty reading: a level
+  that careless play always clears asks nothing of the player, and one it never
+  clears has to be planned.
+- **density** — how much of the board is occupied. What actually creates
+  ordering: with blocks free to round corners, anything with a clear path walks
+  straight out, so an open board plays itself however many blocks it holds.
+- **shuffles** — moves beyond one per block, so how many blocks have to be moved
+  twice.
+- **branching** — how many moves are available, averaged over the opening. Room
+  to think in.
+- **openings** — blocks that can leave from their starting square.
+
+Levels are not meant to climb in difficulty. A set wants variety across all of
+these, which is what the generator selects for.
 
 ## Constraints
 

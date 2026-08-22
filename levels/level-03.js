@@ -2,7 +2,7 @@ const LEVEL_03 =
 {
   "id": "level-03",
   "name": "Gridlock",
-  "minMoves": 17,
+  "par": 17,
   "width": 6,
   "height": 6,
   "walls": [[3, 1], [3, 3]],

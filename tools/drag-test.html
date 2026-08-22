@@ -197,16 +197,21 @@ window.addEventListener("load", async () => {
   doc.getElementById("onward").click();
   expect("win screen leads to the next level", name() + " " + counters(), "Crosstown 13/0");
   const atSecond = chrome();
-  doc.getElementById("next").click();
-  expect("third level loads", name() + " " + counters(), "Gridlock 10/0");
-  const atThird = chrome();
-  expect("no next level past the last", String(doc.getElementById("next").disabled), "true");
-  doc.getElementById("prev").click();
-  doc.getElementById("prev").click();
+
+  // walk to the end and back, however many levels there are
+  const shapes = new Set([atFirst, atSecond]);
+  let stepped = 1;
+  while (!doc.getElementById("next").disabled && stepped < 50) {
+    doc.getElementById("next").click();
+    stepped += 1;
+    shapes.add(chrome());
+  }
+  expect("more than one level to reach", String(stepped > 1), "true");
+  expect("last level has nowhere further", String(doc.getElementById("next").disabled), "true");
+  while (!doc.getElementById("prev").disabled) doc.getElementById("prev").click();
   expect("back at the first level", name(), "First Light");
   expect("no previous level before the first", String(doc.getElementById("prev").disabled), "true");
-  expect("header holds still on level 2", atSecond, atFirst);
-  expect("header holds still on level 3", atThird, atFirst);
+  expect("header holds still on every level", String(shapes.size), "1");
   expect("header stays one line", String(linesFirst), "34");
 
   const failed = results.filter((r) => r.startsWith("FAIL")).length;

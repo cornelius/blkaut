@@ -2,7 +2,7 @@ const LEVEL_01 =
 {
   "id": "level-01",
   "name": "First Light",
-  "minMoves": 10,
+  "par": 10,
   "width": 6,
   "height": 6,
   "walls": [[2, 1], [3, 1], [1, 3]],
