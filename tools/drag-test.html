@@ -96,9 +96,25 @@ window.addEventListener("load", async () => {
   release(grab.x, grab.y);
   const carried = walk(grab, [[-2, 0]]);
   expect("block follows an unpressed pointer", posOf(sticky), "1,5");
-  press(field, carried.x, carried.y);
+  press(sticky, carried.x, carried.y); // on the block itself, the way a hand does it
   release(carried.x, carried.y);
   expect("click puts the block down", posOf(sticky) + " " + counters(), "1,5 8/3");
+  walk(carried, [[1, 0]]);
+  expect("dropped block stays down", posOf(sticky) + " " + counters(), "1,5 8/3");
+
+  /* clicking a second block hands the carry straight over to it */
+  const handover = centre(sticky);
+  press(sticky, handover.x, handover.y);
+  release(handover.x, handover.y);
+  const other = blockAt(0, 0);
+  const onOther = centre(other);
+  press(other, onOther.x, onOther.y);
+  release(onOther.x, onOther.y);
+  walk(onOther, [[0, 1]]);
+  expect("carry passes to the clicked block", posOf(other) + " " + posOf(sticky), "0,1 1,5");
+  press(other, onOther.x, onOther.y + CELL);
+  release(onOther.x, onOther.y + CELL);
+  expect("handover counted one move", counters(), "8/4");
 
   /* a block leaves through its own door, and undo brings it back */
   doc.getElementById("reset").click();

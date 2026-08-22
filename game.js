@@ -274,22 +274,32 @@
     place(c.block);
   }
 
-  field.addEventListener("pointerdown", (event) => {
-    const el = event.target.closest(".block");
-    event.preventDefault();
+  // One handler for both halves of the gesture: with nothing in hand a click on
+  // a block picks it up, and with a block in hand a click anywhere puts it
+  // down. Clicking the carried block is a put-down, not a fresh pick-up.
+  window.addEventListener("pointerdown", (event) => {
+    const target = event.target;
+    const el = target && target.closest ? target.closest(".block") : null;
+    const onBoard = el !== null && field.contains(el);
+
     if (carry) {
-      // a click anywhere puts the carried block down; on another block, that
-      // same click then picks the new one up
+      const dropped = carry.block;
       putDown();
-      if (el && el !== event.currentTarget) {
+      if (onBoard) {
         const next = state.blocks.find((b) => b.id === el.dataset.id);
-        if (next && next.alive) pickUp(event, next);
+        if (next && next.alive && next !== dropped) {
+          event.preventDefault();
+          pickUp(event, next);
+        }
       }
       return;
     }
-    if (!el) return;
+    if (!onBoard) return;
     const block = state.blocks.find((b) => b.id === el.dataset.id);
-    if (block && block.alive) pickUp(event, block);
+    if (block && block.alive) {
+      event.preventDefault();
+      pickUp(event, block);
+    }
   });
 
   window.addEventListener("pointermove", onMove);
