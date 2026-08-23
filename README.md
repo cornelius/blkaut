@@ -2,6 +2,8 @@
 
 A colour-sort block puzzle for the browser. The board is packed with coloured blocks and the walls carry coloured doors. Pick a block up, steer it through the free squares, and push it out through a door of its own colour. Clear every block to finish the level.
 
+![The first level: red, blue, green and yellow blocks packed on a dark board, with a matching coloured door set into each wall and two hatched squares blocking the middle.](screenshot.png)
+
 Open `app/index.html` directly in a browser. There is no build step and no dependency. The arrows in the header move between levels, as do the left and right arrow keys, and finishing one offers the next. Cmd/Ctrl-Z undoes the last move.
 
 ## Carrying a block
