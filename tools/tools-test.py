@@ -16,6 +16,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+APP = ROOT / "app"
 sys.path.insert(0, str(ROOT / "tools"))
 from blkaut import Level, load_level  # noqa: E402
 
@@ -71,7 +72,7 @@ with tempfile.TemporaryDirectory() as tmp:
                   f"--min-shuffles 2 let through a candidate with {card['stats']['shuffles']}")
 
 # the shipped levels must agree with what is recorded for them
-for path in sorted(ROOT.glob("levels/level-*.js")):
+for path in sorted(APP.glob("levels/level-*.js")):
     data = load_level(path)
     recorded = len([
         line for line in

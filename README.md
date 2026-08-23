@@ -2,7 +2,7 @@
 
 A colour-sort block puzzle for the browser. The board is packed with coloured blocks and the walls carry coloured doors. Pick a block up, steer it through the free squares, and push it out through a door of its own colour. Clear every block to finish the level.
 
-Open `index.html` directly in a browser. There is no build step and no dependency. The arrows in the header move between levels, as do the left and right arrow keys, and finishing one offers the next. Cmd/Ctrl-Z undoes the last move.
+Open `app/index.html` directly in a browser. There is no build step and no dependency. The arrows in the header move between levels, as do the left and right arrow keys, and finishing one offers the next. Cmd/Ctrl-Z undoes the last move.
 
 ## Carrying a block
 
@@ -18,21 +18,24 @@ A block moves one cell at a time. Each cell it lands on must be empty ground, or
 
 | File | Contents |
 |---|---|
-| `index.html` | The page: HUD, board, win overlay. |
-| `style.css` | Board, blocks, doors, and the fixed-width HUD slots. |
-| `rules.js` | The whole game model. Legality, sliding, and exits, with no DOM. |
-| `game.js` | Rendering, carrying, undo, and reset. Asks `rules.js` what is legal. |
-| `levels/level-NN.js` | One level each: board size, walls, doors, blocks, and its par. |
-| `levels/level-NN.solution.txt` | Solver output for that level, replayed by the tests. |
+| `app/index.html` | The page: HUD, board, win overlay. |
+| `app/style.css` | Board, blocks, doors, and the fixed-width HUD slots. |
+| `app/rules.js` | The whole game model. Legality, sliding, and exits, with no DOM. |
+| `app/game.js` | Rendering, carrying, undo, and reset. Asks `rules.js` what is legal. |
+| `app/levels/level-NN.js` | One level each: board size, walls, doors, blocks, and its par. |
+| `app/levels/level-NN.solution.txt` | Solver output for that level, replayed by the tests. |
 | `tools/blkaut.py` | The level model for the tools: both solvers, careless playouts, measurements. |
 | `tools/verify-level.py` | Solves one level and describes it. |
 | `tools/generate-levels.py` | Shakes out candidate levels, measures them, keeps a varied set, draws a preview sheet. |
 | `tools/adopt-level.py` | Turns a candidate into a real level and registers it. |
-| `tools/sync-levels.py` | Rewrites the three lists of levels from what is in `levels/`. |
+| `tools/sync-levels.py` | Rewrites the three lists of levels from what is in `app/levels/`. |
 | `tools/replay-test.js` | Checks every level's data, replays its solution through `rules.js`, and checks how doors refuse a block. |
 | `tools/drag-test.html` | Drives the real page with synthetic pointer events, up to a full playthrough. |
 | `tools/tools-test.py` | Smoke test for the level tools, which the game's own tests never touch. |
 | `Makefile` | Runs the test passes. |
+| `.github/workflows/pages.yml` | Publishes `app/` to GitHub Pages on every push to `main`. |
+
+Everything the site serves is under `app/`, and nothing else is: the tools, the tests and this README stay out of what gets published. The deploy runs from Actions, so a fork needs its Pages source set to GitHub Actions rather than to a branch.
 
 ## Working on it
 
@@ -47,7 +50,7 @@ Playing needs nothing but a browser; the tests need three things. `node` runs th
 
 The generator packs random boards, throws away the ones that will not play, and keeps a set whose measurements sit as far apart as possible. Adopting one writes the level and its solution and registers it everywhere; `sync-levels.py` alone rebuilds those lists if you write a level by hand.
 
-After editing a level, `verify-level.py <level> --update` re-solves it and writes the new par and solution file back, so the two cannot drift apart.
+After editing a level, `verify-level.py app/levels/<level>.js --update` re-solves it and writes the new par and solution file back, so the two cannot drift apart.
 
 ### Two solvers, for two questions
 

@@ -3,7 +3,7 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
-"""Rewrite the three places that list the levels, from what is in levels/.
+"""Rewrite the three places that list the levels, from what is in app/levels/.
 
 Adding a level should be writing one file, not remembering three edits.
 """
@@ -13,10 +13,11 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+APP = ROOT / "app"
 
 
 def names():
-    found = sorted(ROOT.glob("levels/level-*.js"))
+    found = sorted(APP.glob("levels/level-*.js"))
     return [p.stem for p in found]
 
 
@@ -34,9 +35,9 @@ def main():
         sys.exit("no levels found")
     constant = [f"LEVEL_{n.split('-')[1]}" for n in levels]
 
-    swap(ROOT / "index.html", "<!-- levels -->", "<!-- /levels -->",
+    swap(APP / "index.html", "<!-- levels -->", "<!-- /levels -->",
          "\n".join(f'<script src="levels/{n}.js"></script>' for n in levels))
-    swap(ROOT / "game.js", "/* levels */", "/* /levels */",
+    swap(APP / "game.js", "/* levels */", "/* /levels */",
          "  const LEVELS = [" + ", ".join(constant) + "];")
     swap(ROOT / "tools/replay-test.js", "/* levels */", "/* /levels */",
          "const LEVELS = [" + ", ".join(f'"{n}"' for n in levels) + "];")

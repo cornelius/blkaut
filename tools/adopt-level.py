@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from blkaut import Level  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
+APP = ROOT / "app"
 
 
 def render(data, ident, name, par):
@@ -58,7 +59,7 @@ def main():
 
     cards = json.loads(args.candidates.read_text())
     data = cards[args.pick - 1]["level"]
-    existing = sorted(ROOT.glob("levels/level-*.js"))
+    existing = sorted(APP.glob("levels/level-*.js"))
     ident = f"{int(existing[-1].stem.split('-')[1]) + 1:02d}" if existing else "01"
 
     level = Level(data)
@@ -66,16 +67,16 @@ def main():
     if not isinstance(solution, list):
         sys.exit("no solution found; this candidate is not playable")
 
-    (ROOT / f"levels/level-{ident}.js").write_text(
+    (APP / f"levels/level-{ident}.js").write_text(
         render(data, ident, args.name, len(solution))
     )
     head = "shortest" if proven else "par"
     body = [f"level-{ident}.js: {len(level.blocks)} blocks, {explored} states explored",
             f"{head} solution: {len(solution)} moves"]
     body += [f"  {n:2}. {label}" for n, label in enumerate(solution, 1)]
-    (ROOT / f"levels/level-{ident}.solution.txt").write_text("\n".join(body) + "\n")
+    (APP / f"levels/level-{ident}.solution.txt").write_text("\n".join(body) + "\n")
 
-    print(f"wrote levels/level-{ident}.js ({args.name}), par {len(solution)}"
+    print(f"wrote app/levels/level-{ident}.js ({args.name}), par {len(solution)}"
           + ("" if proven else " (best found, not proven)"))
     stats = level.measure() or {}
     # measure() screens with the fast solver, so its par is not the one just

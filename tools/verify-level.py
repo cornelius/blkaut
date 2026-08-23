@@ -5,8 +5,8 @@
 # ///
 """Solve a level and describe it.
 
-    verify-level.py levels/level-01.js            # a solution, fast
-    verify-level.py levels/level-01.js --exact    # prove the shortest one
+    verify-level.py app/levels/level-01.js            # a solution, fast
+    verify-level.py app/levels/level-01.js --exact    # prove the shortest one
 
 Fast is the default because proving a minimum costs the entire reachable state
 space, and the move count is only one of the things that make a level good.

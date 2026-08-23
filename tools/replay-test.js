@@ -6,9 +6,9 @@
 
 const fs = require("fs");
 const path = require("path");
-const Rules = require("../rules.js");
+const Rules = require("../app/rules.js");
 
-const root = path.join(__dirname, "..");
+const root = path.join(__dirname, "..", "app");
 /* levels */
 const LEVELS = ["level-01", "level-02", "level-03", "level-04", "level-05", "level-06", "level-07"];
 /* /levels */
