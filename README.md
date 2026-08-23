@@ -49,12 +49,19 @@ door. Leaving is atomic: a block never rests half off the board.
 | `tools/replay-test.js` | Checks every level's data, replays its solution through `rules.js`, and checks how doors refuse a block. |
 | `tools/drag-test.html` | Drives the real page with synthetic pointer events, up to a full playthrough. |
 | `tools/tools-test.py` | Smoke test for the level tools, which the game's own tests never touch. |
-| `tools/run-tests.sh` | Runs every test pass. |
+| `Makefile` | Runs the test passes. |
 
 ## Working on it
 
-Run the tests with `tools/run-tests.sh`. The drag tests need Chrome; set
-`CHROME` if it is not in the usual macOS location.
+Run the tests with `make test`, or one pass at a time with `make test-rules`,
+`make test-tools` and `make test-drag`.
+
+Playing needs nothing but a browser; the tests need three things. `node` runs
+the rules pass. [uv](https://docs.astral.sh/uv/) runs the level tools, and
+fetches the Python 3.11 they ask for if you have none. Chrome or Chromium drives
+the real page for the drag pass: `make` looks in the usual places on macOS and
+Linux, and set `CHROME` to a browser somewhere else. A missing browser fails the
+pass rather than skipping it, so a green run means all three passes ran.
 
 ### Making levels
 
