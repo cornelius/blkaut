@@ -22,12 +22,21 @@
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
+  /* one column the width of the screen, so the page below can cap itself
+     against the screen rather than against its own content */
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   background: var(--bg);
   color: var(--text);
   font: 15px/1.5 ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  /* a phone must not rubber-band or zoom under a gesture meant for a block,
+     and must not inflate the HUD text out of its slots */
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  user-select: none;
 }
 
 .game {
@@ -37,8 +46,10 @@ body {
   padding: 24px;
   align-items: center;
   /* a fixed page width, so neither a wider board nor a longer level name moves
-     the header when you switch level */
+     the header when you switch level; on a narrower screen the screen wins,
+     and game.js sizes the cell to whatever space is left */
   width: 608px;
+  max-width: 100%;
 }
 
 /* HUD: every slot has a fixed box so nothing shifts as the numbers change. */
@@ -50,9 +61,14 @@ body {
   width: 100%;
 }
 
-/* nothing in the header may wrap or be squeezed: a header that reflows is a
-   header that moves between levels */
-.hud > * { flex-shrink: 0; white-space: nowrap; }
+/* The three groups are one flat row on a wide screen and lines of their own on
+   a narrow one; nothing inside a group may wrap or be squeezed, because a
+   header that reflows is a header that moves between levels. */
+.hud-nav, .hud-actions, .hud-stats { display: contents; }
+.hud > *,
+.hud-nav > *,
+.hud-actions > *,
+.hud-stats > * { flex-shrink: 0; white-space: nowrap; }
 .hud-title { font-weight: 650; letter-spacing: 0.01em; }
 /* fixed slot: level names differ in length and must not move the arrow */
 .hud-level {
@@ -159,7 +175,7 @@ body {
 .block::after {
   content: "";
   position: absolute;
-  inset: 5px;
+  inset: calc(var(--radius) / 2);
   border-radius: calc(var(--radius) - 4px);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
 }
@@ -193,5 +209,28 @@ body {
 
 .hint { margin: 0; color: var(--text-dim); font-size: 13px; text-align: center; }
 
-.won-buttons { display: flex; gap: 10px; }
+.won-buttons { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+/* Phone: the header becomes two lines, the level name and the board give up
+   what they can, and the touch targets grow rather than shrink. */
+@media (max-width: 560px) {
+  .game { padding: 12px; gap: 12px; }
+
+  .hud { flex-wrap: wrap; height: auto; row-gap: 10px; justify-content: space-between; }
+  .hud-title { display: none; }
+  .hud-nav, .hud-actions, .hud-stats { display: flex; align-items: center; gap: 10px; }
+  .hud-nav { order: 1; }
+  .hud-stats { order: 2; }
+  /* a full-width nothing: the line break between the two rows */
+  .hud-spacer { order: 3; flex: 0 0 100%; height: 0; }
+  .hud-actions { order: 4; }
+
+  .hud-level { min-width: 84px; }
+  .hud-step { width: 34px; height: 34px; }
+  .hud-button { height: 36px; padding: 0 14px; }
+
+  .hint { font-size: 12px; }
+  .won { padding: 10px; text-align: center; }
+  .won-title { font-size: 19px; }
+}
 

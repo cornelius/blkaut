@@ -11,6 +11,8 @@
 (function () {
   const EPS = 1e-9;
   const CLICK_SLOP = 0.35; // cells; a press shorter than this is a click, not a drag
+  const MAX_CELL = 72; // the size a cell gets when the screen has room to spare
+  const MIN_CELL = 22; // below this the board is unplayable, so let the page scroll instead
 
   /* levels */
   const LEVELS = [LEVEL_01, LEVEL_02, LEVEL_03, LEVEL_04, LEVEL_05, LEVEL_06, LEVEL_07];
@@ -19,6 +21,9 @@
   let level = LEVELS[0];
   const board = document.getElementById("board");
   const field = document.getElementById("field");
+  const page = document.querySelector(".game");
+  const header = document.querySelector(".hud");
+  const hint = document.querySelector(".hint");
   const hud = {
     level: document.getElementById("hud-level"),
     left: document.getElementById("hud-left"),
@@ -38,7 +43,8 @@
   let elements = new Map();
   let history = [];
   let moves = 0;
-  let cell = 64;
+  let cell = MAX_CELL;
+  let frame = 20;
   let carry = null;
 
   /* rendering ------------------------------------------------------------ */
@@ -49,15 +55,61 @@
     elements.get(block.id).style.transform = "translate(" + px + "px," + py + "px)";
   }
 
-  function buildBoard() {
-    field.textContent = "";
-    elements = new Map();
+  /* fitting the board to the screen ---------------------------------------
+
+     The board has no size of its own: the cell is whatever is left once the
+     header, the hint and the padding have taken their share, capped so a
+     desktop board does not swell to fill a monitor. Everything drawn on the
+     board is a fraction of the cell, so a phone gets the same board, smaller.
+  */
+
+  // what the reader can actually see right now, which on a phone is less than
+  // the window whenever the browser's own bars are showing
+  function screenHeight() {
+    const seen = window.visualViewport;
+    if (seen && Math.abs(seen.scale - 1) < 0.01) return seen.height;
+    return window.innerHeight;
+  }
+
+  function frameFor(size) {
+    return Math.round(Math.min(20, Math.max(9, size * 0.28)));
+  }
+
+  // The frame band is itself a fraction of the cell, so the two settle against
+  // each other; three passes is far more than that takes.
+  function fitCell() {
+    const style = getComputedStyle(page);
+    const padX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+    const padY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+    const gaps = 2 * (parseFloat(style.rowGap) || 0);
+    const across = page.clientWidth - padX;
+    const down = screenHeight() - padY - gaps - header.offsetHeight - hint.offsetHeight;
+    let size = MAX_CELL;
+    for (let pass = 0; pass < 3; pass++) {
+      const band = 2 * frameFor(size);
+      size = Math.min(MAX_CELL, (across - band) / level.width, (down - band) / level.height);
+    }
+    return Math.max(MIN_CELL, Math.floor(size));
+  }
+
+  function layOut() {
+    cell = fitCell();
+    frame = frameFor(cell);
     const root = document.documentElement;
     root.style.setProperty("--cols", level.width);
     root.style.setProperty("--rows", level.height);
-    const style = getComputedStyle(board);
-    cell = parseFloat(style.getPropertyValue("--cell"));
-    const frame = parseFloat(style.getPropertyValue("--frame"));
+    root.style.setProperty("--cell", cell + "px");
+    root.style.setProperty("--frame", frame + "px");
+    root.style.setProperty("--radius", Math.max(4, Math.round(cell * 0.14)) + "px");
+  }
+
+  function buildBoard() {
+    field.textContent = "";
+    elements = new Map();
+    layOut();
+    const gap = Math.max(1, Math.round(cell * 0.042)); // between a block and its square
+    const doorGap = Math.max(1, Math.round(frame * 0.15)); // door within the frame band
+    const doorPad = Math.max(1, Math.round(cell * 0.083)); // door short of the full run
 
     for (const [x, y] of level.walls) {
       const el = document.createElement("div");
@@ -70,19 +122,19 @@
       const el = document.createElement("div");
       el.className = "door";
       el.style.setProperty("--door-color", "var(--" + door.color + ")");
-      const length = (door.to - door.from + 1) * cell - 12;
-      const start = door.from * cell + 6;
-      const depth = frame - 6;
+      const length = (door.to - door.from + 1) * cell - 2 * doorPad;
+      const start = door.from * cell + doorPad;
+      const depth = frame - 2 * doorGap;
       if (door.side === "top" || door.side === "bottom") {
         el.style.width = length + "px";
         el.style.height = depth + "px";
         el.style.left = start + "px";
-        el.style[door.side] = 3 - frame + "px";
+        el.style[door.side] = doorGap - frame + "px";
       } else {
         el.style.height = length + "px";
         el.style.width = depth + "px";
         el.style.top = start + "px";
-        el.style[door.side] = 3 - frame + "px";
+        el.style[door.side] = doorGap - frame + "px";
       }
       field.appendChild(el);
     }
@@ -92,11 +144,13 @@
       el.className = "block";
       el.dataset.id = block.id;
       el.style.setProperty("--block-color", "var(--" + block.color + ")");
-      el.style.width = Rules.extent(block, "x") * cell - 6 + "px";
-      el.style.height = Rules.extent(block, "y") * cell - 6 + "px";
-      el.style.margin = "3px";
+      el.style.width = Rules.extent(block, "x") * cell - 2 * gap + "px";
+      el.style.height = Rules.extent(block, "y") * cell - 2 * gap + "px";
+      el.style.margin = gap + "px";
       elements.set(block.id, el);
-      field.appendChild(el);
+      // a block that has already left keeps its element, detached, the way
+      // exiting leaves it: undo puts it back
+      if (block.alive) field.appendChild(el);
       place(block);
     }
   }
@@ -398,6 +452,20 @@
     buildBoard();
     refreshHud();
   }
+
+  // The screen can change size under the game: a phone turned on its side, a
+  // window dragged narrower, a browser bar sliding out of the way. The board is
+  // rebuilt around the new cell, and a block in hand is put back where it was
+  // picked up rather than carried across two different grids.
+  function refit() {
+    if (fitCell() === cell) return;
+    cancelCarry();
+    buildBoard();
+  }
+
+  window.addEventListener("resize", refit);
+  window.addEventListener("orientationchange", refit);
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", refit);
 
   hud.undo.addEventListener("click", undo);
   hud.reset.addEventListener("click", () => start());

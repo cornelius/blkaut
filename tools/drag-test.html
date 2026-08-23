@@ -160,8 +160,9 @@ window.addEventListener("load", async () => {
     for (const [, id, rest] of solution) {
       const el = field.querySelector('.block:not(.leaving)[data-id="' + id + '"]');
       if (!el) { results.push("FAIL playthrough lost block " + id); break; }
-      const across = Math.round((el.offsetWidth + 6) / CELL);
-      const down = Math.round((el.offsetHeight + 6) / CELL);
+      const gap = 2 * parseFloat(win.getComputedStyle(el).marginLeft);
+      const across = Math.round((el.offsetWidth + gap) / CELL);
+      const down = Math.round((el.offsetHeight + gap) / CELL);
       const legs = [];
       for (const token of rest.split(/\s+/)) {
         const out = token.match(/^out-(\w+)$/);
@@ -213,6 +214,33 @@ window.addEventListener("load", async () => {
   expect("no previous level before the first", String(doc.getElementById("prev").disabled), "true");
   expect("header holds still on every level", String(shapes.size), "1");
   expect("header stays one line", String(linesFirst), "34");
+
+  /* a narrower screen gets a smaller cell, and the game underneath survives it */
+  const cellOf = () =>
+    parseFloat(win.getComputedStyle(doc.documentElement).getPropertyValue("--cell"));
+  const blocksOnBoard = () => String(field.querySelectorAll(".block").length);
+  // The iframe knows its new size at once but only hears about it on a rendered
+  // frame, which headless does not produce here; the event is sent by hand, the
+  // same way the pointer events above are.
+  const resizeTo = (width, height) => {
+    frame.width = width;
+    frame.height = height;
+    win.dispatchEvent(new win.Event("resize"));
+    CELL = cellOf();
+  };
+
+  gesture(blockAt(2, 0), [[4, 0]]);
+  const wide = CELL;
+  resizeTo(360, 640);
+  expect("a narrow screen gets a smaller cell", String(CELL < wide), "true");
+  expect("the board fits the screen",
+    String(doc.getElementById("board").getBoundingClientRect().width <= win.innerWidth), "true");
+  expect("a departed block stays gone across a resize",
+    blocksOnBoard() + " " + counters(), "7 7/1");
+  doc.getElementById("undo").click();
+  expect("undo brings it back after a resize", blocksOnBoard() + " " + counters(), "8 8/0");
+  resizeTo(700, 700);
+  expect("the wide screen gets its cell back", String(CELL), String(wide));
 
   const failed = results.filter((r) => r.startsWith("FAIL")).length;
   report((failed ? "FAIL " + failed + " of " + results.length : "PASS all " + results.length)

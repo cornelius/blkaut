@@ -4,11 +4,11 @@ A colour-sort block puzzle for the browser. The board is packed with coloured bl
 
 ![The first level: red, blue, green and yellow blocks packed on a dark board, with a matching coloured door set into each wall and two hatched squares blocking the middle.](screenshot.png)
 
-Open `app/index.html` directly in a browser. There is no build step and no dependency. The arrows in the header move between levels, as do the left and right arrow keys, and finishing one offers the next. Cmd/Ctrl-Z undoes the last move.
+Open `app/index.html` directly in a browser. There is no build step and no dependency. The board is sized to the screen it is on, so a phone gets the whole level rather than a corner of it. The arrows in the header move between levels, as do the left and right arrow keys, and finishing one offers the next. Cmd/Ctrl-Z undoes the last move.
 
 ## Carrying a block
 
-Clicking a block attaches it to the pointer and it stays attached until you put it down, whether or not you keep the button held; clicking again drops it, and Escape returns it to where you picked it up. Press-drag-release works too, for anyone whose hand does that anyway.
+Clicking a block attaches it to the pointer and it stays attached until you put it down, whether or not you keep the button held; clicking again drops it, and Escape returns it to where you picked it up. Press-drag-release works too, for anyone whose hand does that anyway, and it is the whole of the gesture on a touchscreen, where a finger off the glass cannot steer anything.
 
 While carried, the block trails the pointer square by square. It can only turn where it is lined up with the grid, so it edges to the next grid line before changing axis, which is what lets one gesture run along a row, down a column and out through a door without stopping. One gesture is one move, however many corners it turns. A door takes the block as soon as it crosses the wall by a pixel, so leaving never needs a deliberate shove.
 
@@ -21,9 +21,9 @@ A block moves one cell at a time. Each cell it lands on must be empty ground, or
 | File | Contents |
 |---|---|
 | `app/index.html` | The page: HUD, board, win overlay. |
-| `app/style.css` | Board, blocks, doors, and the fixed-width HUD slots. |
+| `app/style.css` | Board, blocks, doors, the fixed-width HUD slots, and the two lines they fall into on a narrow screen. |
 | `app/rules.js` | The whole game model. Legality, sliding, and exits, with no DOM. |
-| `app/game.js` | Rendering, carrying, undo, and reset. Asks `rules.js` what is legal. |
+| `app/game.js` | Rendering, carrying, undo, reset, and fitting the board to the screen. Asks `rules.js` what is legal. |
 | `app/levels/level-NN.js` | One level each: board size, walls, doors, blocks, and its par. |
 | `app/levels/level-NN.solution.txt` | Solver output for that level, replayed by the tests. |
 | `tools/blkaut.py` | The level model for the tools: both solvers, careless playouts, measurements. |
@@ -32,7 +32,7 @@ A block moves one cell at a time. Each cell it lands on must be empty ground, or
 | `tools/adopt-level.py` | Turns a candidate into a real level and registers it. |
 | `tools/sync-levels.py` | Rewrites the three lists of levels from what is in `app/levels/`. |
 | `tools/replay-test.js` | Checks every level's data, replays its solution through `rules.js`, and checks how doors refuse a block. |
-| `tools/drag-test.html` | Drives the real page with synthetic pointer events, up to a full playthrough. |
+| `tools/drag-test.html` | Drives the real page with synthetic pointer events, up to a full playthrough and a change of screen size. |
 | `tools/tools-test.py` | Smoke test for the level tools, which the game's own tests never touch. |
 | `Makefile` | Runs the test passes. |
 | `.github/workflows/pages.yml` | Publishes `app/` to GitHub Pages on every push to `main`. |

@@ -10,14 +10,20 @@
 <main class="game">
   <header class="hud">
     <span class="hud-title">Blkaut</span>
-    <button class="hud-step" id="prev" type="button" aria-label="Previous level">&lsaquo;</button>
-    <span class="hud-level" id="hud-level">Level 1</span>
-    <button class="hud-step" id="next" type="button" aria-label="Next level">&rsaquo;</button>
+    <span class="hud-nav">
+      <button class="hud-step" id="prev" type="button" aria-label="Previous level">&lsaquo;</button>
+      <span class="hud-level" id="hud-level">Level 1</span>
+      <button class="hud-step" id="next" type="button" aria-label="Next level">&rsaquo;</button>
+    </span>
     <span class="hud-spacer"></span>
-    <button class="hud-button" id="undo" type="button">Undo</button>
-    <button class="hud-button" id="reset" type="button">Reset</button>
-    <span class="hud-stat"><span class="hud-stat-label">Left</span><b id="hud-left">0</b></span>
-    <span class="hud-stat"><span class="hud-stat-label">Moves</span><b id="hud-moves">0</b></span>
+    <span class="hud-actions">
+      <button class="hud-button" id="undo" type="button">Undo</button>
+      <button class="hud-button" id="reset" type="button">Reset</button>
+    </span>
+    <span class="hud-stats">
+      <span class="hud-stat"><span class="hud-stat-label">Left</span><b id="hud-left">0</b></span>
+      <span class="hud-stat"><span class="hud-stat-label">Moves</span><b id="hud-moves">0</b></span>
+    </span>
   </header>
 
   <div class="board" id="board">
