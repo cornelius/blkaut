@@ -128,3 +128,7 @@ these, which is what the generator selects for.
   and the header spans it, so neither a bigger board nor a longer level name
   shifts the header when you switch level. A board wider than that width would
   break the arrangement.
+
+## License
+
+MIT. The full text is in [LICENSE](LICENSE).
