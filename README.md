@@ -6,8 +6,9 @@ free squares, and push it out through a door of its own colour. Clear every
 block to finish the level.
 
 Open `index.html` directly in a browser. There is no build step and no
-dependency. The arrows in the header move between levels, and finishing one
-offers the next.
+dependency. The arrows in the header move between levels, as do the left and
+right arrow keys, and finishing one offers the next. Cmd/Ctrl-Z undoes the last
+move.
 
 ## Carrying a block
 
@@ -65,7 +66,7 @@ pass rather than skipping it, so a green run means all three passes ran.
 
 ### Making levels
 
-    generate-levels.py --count 10 --tries 600 --preview sheet.html
+    tools/generate-levels.py --count 10 --tries 600 --preview sheet.html
     tools/adopt-level.py candidates.json --pick 1 --name Logjam
 
 The generator packs random boards, throws away the ones that will not play, and
@@ -112,9 +113,6 @@ a level is any good. `verify-level.py` prints the others:
 - **branching** — how many moves are available, averaged over the opening. Room
   to think in.
 - **openings** — blocks that can leave from their starting square.
-
-Keyboard: Escape returns a carried block to where it was picked up, and
-Cmd/Ctrl-Z undoes the last move.
 
 Levels are not meant to climb in difficulty. A set wants variety across all of
 these, which is what the generator selects for.

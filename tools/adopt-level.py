@@ -65,8 +65,6 @@ def main():
     solution, proven, explored = level.solve_best(cap=args.cap, allow_exact=not args.fast)
     if not isinstance(solution, list):
         sys.exit("no solution found; this candidate is not playable")
-    if not isinstance(solution, list):
-        sys.exit("no solution found; this candidate is not playable")
 
     (ROOT / f"levels/level-{ident}.js").write_text(
         render(data, ident, args.name, len(solution))

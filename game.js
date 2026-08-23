@@ -222,7 +222,6 @@
       before: takeSnapshot(),
       limits: null,
       leaving: false,
-      sticky: false,
       travel: 0,
     };
     relimit();
@@ -328,7 +327,6 @@
     // released after a real drag: put it down. Released in place: keep
     // carrying, so the rest of the move needs no button held.
     if (carry.travel > CLICK_SLOP) putDown();
-    else carry.sticky = true;
   });
 
   window.addEventListener("keydown", (event) => {
