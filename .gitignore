@@ -1,2 +1,6 @@
 __pycache__/
 *.pyc
+
+# what the generator drops in the working directory
+candidates.json
+sheet.html
